@@ -4,19 +4,19 @@ class Sample {
   private:
     std::string file;
 
-    bool isHarmonic = false;
-    std::vector<Chords>;
+    bool isHarmonic_ = false;
+    //std::vector<Chord> chords;
 
     bool isTuned = false;
 
-    bool hasBeat = false;
+    bool hasBeat_ = false;
     double beat;
 
     /**
      * Saves any processing done back to
      * the file.
      */
-    virtual void saveToFile() = 0;
+    //virtual void saveToFile() = 0;
 
     /**
      * Reads the samples values from a file
@@ -32,7 +32,9 @@ class Sample {
      */
     void tune();
     void findBeat();
-    void findChords();
+    //void findChords();
+  protected:
+    void process();
   public:
     /**
      * Reads the sample information
@@ -82,5 +84,5 @@ class Sample {
      *
      * If the sample is inharmonic an error is returned
      */
-    std::vector<Chord> getChords();
-}
+    //std::vector<Chord> getChords();
+};

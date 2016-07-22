@@ -1,3 +1,5 @@
+#include <iostream>
+
 #include <vector>
 #include <fstream>
 #include <sstream>
@@ -15,6 +17,8 @@
 AbletonSample::AbletonSample(std::string file) 
   : Sample(file) {
 
+    process();
+
     // get rid of waves object now that
     // pre-processing is over.
     // It won't be needed again. 
@@ -26,7 +30,7 @@ AbletonSample::AbletonSample(std::string file)
 tinyxml2::XMLDocument * AbletonSample::getDoc() {
   if (docExists) return &doc;
 
-  // Read file
+  // Ungzip
   std::stringstream unzipped;
 
   std::ifstream zipped(getFile(), 
@@ -36,7 +40,7 @@ tinyxml2::XMLDocument * AbletonSample::getDoc() {
   in.push(zipped);
   boost::iostreams::copy(in, unzipped);
 
-  // ungzip file
+  // convert from xml
   doc.Parse(&unzipped.str()[0]);
   docExists = true;
 
@@ -47,19 +51,56 @@ tinyxml2::XMLDocument * AbletonSample::getDoc() {
 std::vector< std::vector<double> > AbletonSample::getWaves() {
   if (wavesExist) return waves;
 
+  tinyxml2::XMLElement * audioNode = getDoc() -> RootElement()
+                                          -> FirstChildElement("LiveSet")
+                                          -> FirstChildElement("Tracks")
+                                          -> FirstChildElement("AudioTrack")
+                                          -> FirstChildElement("DeviceChain")
+                                          -> FirstChildElement("MainSequencer")
+                                          -> FirstChildElement("ClipSlotList")
+                                          -> FirstChildElement("ClipSlot")
+                                          -> FirstChildElement("ClipSlot")
+                                          -> FirstChildElement("Value")
+                                          -> FirstChildElement("AudioClip");
+
+  tinyxml2::XMLElement * loopNode = audioNode -> FirstChildElement("Loop");
+
+
+  // Start and end times in seconds
+  double start = loopNode -> FirstChildElement("LoopStart") 
+                                -> DoubleAttribute("Value");
+  double end = loopNode -> FirstChildElement("LoopEnd") 
+                                -> DoubleAttribute("Value");
+
+  tinyxml2::XMLElement * pathNode = audioNode -> FirstChildElement("SampleRef")
+                                      -> FirstChildElement("SourceContext")
+                                      -> FirstChildElement("SourceContext")
+                                      -> FirstChildElement("OriginalFileRef")
+                                      -> FirstChildElement("FileRef");
+
+  tinyxml2::XMLElement * dirNode = pathNode -> FirstChildElement("SearchHint")
+                                    -> FirstChildElement("PathHint");
+
+  tinyxml2::XMLElement * pathList = dirNode -> FirstChildElement("RelativePathElement");
+
+  std::string path = "/";
+  while (pathList != nullptr) {
+    path += pathList -> Attribute("Dir");
+    path += "/";
+    pathList = pathList -> NextSiblingElement("RelativePathElement");
+  }
+
+  tinyxml2::XMLElement * nameNode = pathNode -> FirstChildElement("Name");
+  path += nameNode -> Attribute("Value");
+
   // get file path
-  std::string path;
-  // get start
-  double start;
-  // get end
-  double end;
 
   // read file
   SndfileHandle audioFile(path);
   // set seek to beginning
   audioFile.seek(start * audioFile.samplerate(), 0);
   // number of frames to read
-  long size = (start - end) * audioFile.samplerate();
+  long size = (end - start) * audioFile.samplerate();
   std::vector<double> rawAudioData(size * audioFile.channels());
   // read raw interleaved channels
   audioFile.read(&rawAudioData[0], size);
