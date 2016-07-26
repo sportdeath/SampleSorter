@@ -47,6 +47,12 @@ tinyxml2::XMLDocument * AbletonSample::getDoc() {
   return &doc;
 }
 
+long AbletonSample::getSampleRate() {
+  getWaves();
+  return sampleRate;
+}
+
+
 
 std::vector< std::vector<double> > AbletonSample::getWaves() {
   if (wavesExist) return waves;
@@ -72,6 +78,7 @@ std::vector< std::vector<double> > AbletonSample::getWaves() {
   double end = loopNode -> FirstChildElement("LoopEnd") 
                                 -> DoubleAttribute("Value");
 
+  // get file path
   tinyxml2::XMLElement * pathNode = audioNode -> FirstChildElement("SampleRef")
                                       -> FirstChildElement("SourceContext")
                                       -> FirstChildElement("SourceContext")
@@ -93,29 +100,29 @@ std::vector< std::vector<double> > AbletonSample::getWaves() {
   tinyxml2::XMLElement * nameNode = pathNode -> FirstChildElement("Name");
   path += nameNode -> Attribute("Value");
 
-  // get file path
 
   // read file
   SndfileHandle audioFile(path);
+  sampleRate = audioFile.samplerate();
   // set seek to beginning
-  audioFile.seek(start * audioFile.samplerate(), 0);
+  audioFile.seek(start * sampleRate, 0);
   // number of frames to read
-  long size = (end - start) * audioFile.samplerate();
+  long size = (end - start) * sampleRate;
   std::vector<double> rawAudioData(size * audioFile.channels());
   // read raw interleaved channels
-  audioFile.read(&rawAudioData[0], size);
+  audioFile.read(&rawAudioData[0], size * audioFile.channels());
 
   // Allocate output vector
-  std::vector< std::vector<double> > channels(audioFile.channels());
+  waves.resize(audioFile.channels());
   for (int channel = 0; channel < audioFile.channels(); channel ++) {
-    channels[channel].resize(size);
+    waves[channel].resize(size);
   }
 
   // De-interleave channels
   for (long i = 0; i < size * audioFile.channels(); i++) {
-    channels[i % audioFile.channels()][i/audioFile.channels()] = rawAudioData[i];
+    waves[i % audioFile.channels()][i/audioFile.channels()] = rawAudioData[i];
   }
 
   wavesExist = true;
-  return channels;
+  return waves;
 }

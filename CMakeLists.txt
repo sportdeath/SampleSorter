@@ -21,6 +21,8 @@ set(PROJECT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(PROJECT_SOURCES
   ${PROJECT_SOURCE_DIR}/AbletonSample.cpp
   ${PROJECT_SOURCE_DIR}/Sample.cpp
+  ${PROJECT_SOURCE_DIR}/Octave.cpp
+  ${PROJECT_SOURCE_DIR}/SpectralProcessing.cpp
 )
 
 include_directories("${PROJECT_INCLUDE_DIR}")
@@ -30,7 +32,7 @@ include_directories("${PROJECT_INCLUDE_DIR}")
 #######################
 
 # Boost
-find_package(Boost COMPONENTS iostreams REQUIRED)
+find_package(Boost COMPONENTS iostreams filesystem REQUIRED)
 include_directories(${Boost_INCLUDE_DIRS})
 link_directories(${Boost_LIBRARY_DIRS})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
@@ -53,6 +55,14 @@ set(LIBS ${LIBS} ${LIBSNDFILE_LIBRARY})
 if(NOT LIBSNDFILE_FOUND)
   message(ERROR " LIBSNDFILE not found!")
 endif(NOT LIBSNDFILE_FOUND)
+
+# FFTW3
+find_package(FFTW REQUIRED)
+include_directories(${FFTW_INCLUDES})
+set(LIBS ${LIBS} ${FFTW_LIBRARIES})
+if(NOT FFTW_FOUND)
+  message(ERROR " FFTW not found!")
+endif(NOT FFTW_FOUND)
 
 
 ####################

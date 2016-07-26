@@ -26,6 +26,8 @@ class Sample {
      */
     virtual std::vector< std::vector<double> > getWaves() = 0;
 
+    virtual long getSampleRate() = 0;
+
     /**
      * Tunes the sample to A = 440
      * and updates the file structure
