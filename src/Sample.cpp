@@ -3,6 +3,9 @@
 
 #include <SampleSorter/Sample.hpp>
 #include <SampleSorter/Octave.hpp>
+#include <SampleSorter/SpectralProcessing.hpp>
+
+#include "gnuplot-iostream.h"
 
 Sample::Sample(std::string file_) {
   file = file_;
@@ -21,20 +24,20 @@ std::string Sample::getFile() {
 
 void Sample::tune() {
   std::vector<std::vector<double> > a = getWaves();
-  Octave o(a, 60, getSampleRate());
-  o.plot();
-  o.tune();
-  // take fourier transform
-  // wrap it to an octave
-  // want to rotate it so the spectral energy
-  // is as close to bins as possible.
-  // minimize sum [ value@pos * distToNearestBin(pos) ]
-
-
+  Octave o(a, 1200, getSampleRate());
+  long cents = o.tune();
+  std::cout << "tuned by " << cents << " cents" << std::endl;
   return;
 }
 
 void Sample::findBeat() {
+  std::vector<std::vector<double> > a = getWaves();
+  long hopsize = 128;
+
+  double tempo 
+    = SpectralProcessing::tempoDetection(a, hopsize, 2, getSampleRate());
+
+  std::cout << "tempo: " << tempo*60 << " bpm" << std::endl;
   return;
 }
 

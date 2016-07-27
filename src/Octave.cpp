@@ -14,22 +14,26 @@ Octave::Octave(std::vector< std::vector<double> > audio,
        long sampleRate) {
 
   BASE_OFFSET = 1. - fmod(log2(BASE_FREQ), 1);
-  CENTS_PER_BIN = CENTS_PER_OCTAVE/bins;
+  CENTS_PER_BIN = CENTS_PER_OCTAVE/double(bins);
+  BINS_PER_SEMITONE = bins/double(SEMITONES_PER_OCTAVE);
 
   spectrogram.resize(bins);
   std::fill(spectrogram.begin(), spectrogram.end(), 0);
 
+  long fftSize = audio[0].size()/2 + 1;
+
+  std::vector<double> windows(audio[0].size());
+  fftw_complex * fft;
+  fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
+  fftw_plan fftPlan = fftw_plan_dft_r2c_1d(windows.size(),
+                                 windows.data(),
+                                 fft,
+                                 FFTW_ESTIMATE |
+                                 FFTW_DESTROY_INPUT);
 
   for (long channel = 0; channel < audio.size(); channel ++) {
     // Window the audio
-    std::vector<double> windows = SpectralProcessing::hammingWindow(audio[channel]);
-
-    long fftSize = windows.size()/2 + 1;
-    fftw_complex fft[fftSize];
-    fftw_plan fftPlan = fftw_plan_dft_r2c_1d(windows.size(),
-                                   windows.data(),
-                                   fft,
-                                   FFTW_DESTROY_INPUT);
+    SpectralProcessing::hammingWindow(windows, audio[channel]);
 
     // Take the fourier transform
     fftw_execute(fftPlan);
@@ -43,6 +47,9 @@ Octave::Octave(std::vector< std::vector<double> > audio,
       addPeak(peaks[i].first, peaks[i].second);
     }
   }
+
+  fftw_destroy_plan(fftPlan);
+  fftw_free(fft);
 
   // Normalize so that magnitude is 1
   double magnitude = 0;
@@ -81,23 +88,7 @@ void Octave::rotate(long bins) {
     bins += spectrogram.size();
   }
 
-  std::cout << "rotating by " << bins << std::endl;
-
-  // shift vector by floor[cents/CENTS_PER_BIN]
-  //long integerShift = cents/CENTS_PER_BIN;
   std::rotate(spectrogram.begin(), spectrogram.end() - bins, spectrogram.end());
-
-  //double percentShift = std::fmod(cents/double(CENTS_PER_BIN), 1.);
-  //std::cout << percentShift << std::endl;
-
-  //double lastEntry = spectrogram[spectrogram.size() - 1];
-
-  //for (long i = spectrogram.size() - 1; i > 0; i--) {
-    //spectrogram[i] = spectrogram[i] * (1. - percentShift) + spectrogram[i - 1] * (percentShift);
-  //}
-  //spectrogram[0] = spectrogram[0] * (1. - percentShift) + lastEntry * (percentShift);
-  
-
 }
 
 double Octave::tuningValue() {
@@ -108,34 +99,31 @@ double Octave::tuningValue() {
     if (distanceFromSemitone > 0.5) {
       distanceFromSemitone = 1 - distanceFromSemitone;
     }
-    std::cout << "bin: " << bin << " distanceFromSemitone: " << distanceFromSemitone << std::endl;
     output += distanceFromSemitone * spectrogram[bin];
   }
-  std::cout << "tuningValue: " << output << std::endl;
-  plot();
   double sum = 0;
   return output;
 }
 
 long Octave::tune() {
   // rotate by -50 cents
-  // rotate by +1 cent 100x
-  // return to minimum and return shift
-  double max = std::ceil(spectrogram.size()/double(SEMITONES_PER_OCTAVE)/2.);
+  double max = std::ceil(BINS_PER_SEMITONE/2.);
   rotate(-max);
   double minTuningValue = spectrogram.size();
-  long minBin = 0;
+  long minBin = -max;
+
+  // rotate by +1 cent 100x
   for (long bin = -max; bin <= max; bin++) {
-    rotate(1);
     double currentTuningValue = tuningValue();
     if (currentTuningValue < minTuningValue) {
       minTuningValue = currentTuningValue;
       minBin = bin;
     }
+    rotate(1);
   }
-  //rotate(-CENTS_PER_SEMITONE/2);
-  //rotate(minCent);
-  return minBin;
+  // return to minimum and return shift
+  rotate(minBin-(max+1));
+  return minBin * CENTS_PER_BIN;
 }
 
 void Octave::plot() {

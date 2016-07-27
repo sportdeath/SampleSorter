@@ -17,7 +17,11 @@
 AbletonSample::AbletonSample(std::string file) 
   : Sample(file) {
 
-    process();
+    try {
+      process();
+    } catch (int e) {
+      std::cout << "The file could not be processed" << std::endl;
+    }
 
     // get rid of waves object now that
     // pre-processing is over.
@@ -86,24 +90,28 @@ std::vector< std::vector<double> > AbletonSample::getWaves() {
                                       -> FirstChildElement("FileRef");
 
   tinyxml2::XMLElement * dirNode = pathNode -> FirstChildElement("SearchHint")
-                                    -> FirstChildElement("PathHint");
-
-  tinyxml2::XMLElement * pathList = dirNode -> FirstChildElement("RelativePathElement");
+                                    -> FirstChildElement("PathHint")
+                                    -> FirstChildElement("RelativePathElement");
 
   std::string path = "/";
-  while (pathList != nullptr) {
-    path += pathList -> Attribute("Dir");
+  while (dirNode != nullptr) {
+    path += dirNode -> Attribute("Dir");
     path += "/";
-    pathList = pathList -> NextSiblingElement("RelativePathElement");
+    dirNode = dirNode -> NextSiblingElement("RelativePathElement");
   }
 
   tinyxml2::XMLElement * nameNode = pathNode -> FirstChildElement("Name");
   path += nameNode -> Attribute("Value");
 
-
   // read file
   SndfileHandle audioFile(path);
   sampleRate = audioFile.samplerate();
+
+  if (sampleRate == 0) {
+    std::cout << "The file '" << path << "' could not be read" << std::endl;
+    throw 20;
+  }
+
   // set seek to beginning
   audioFile.seek(start * sampleRate, 0);
   // number of frames to read

@@ -6,9 +6,9 @@
 
 class AbletonSample : public Sample {
   private:
-    bool docExists;
+    bool docExists = false;
     tinyxml2::XMLDocument doc;
-    bool wavesExist;
+    bool wavesExist = false;
     std::vector< std::vector<double> > waves;
     long sampleRate;
 

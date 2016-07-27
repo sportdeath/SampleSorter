@@ -12,6 +12,7 @@ class Octave {
     static const int CENTS_PER_SEMITONE = 100;
     static const int CENTS_PER_OCTAVE = SEMITONES_PER_OCTAVE * CENTS_PER_SEMITONE;
     double CENTS_PER_BIN;
+    double BINS_PER_SEMITONE;
 
     Octave(std::vector< std::vector<double> > audio, long sampleRate, long numBins);
 

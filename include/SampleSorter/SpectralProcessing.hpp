@@ -6,7 +6,7 @@ class SpectralProcessing {
 
     static double hammingWindow(long index, long size);
 
-    static std::vector<double> hammingWindow(std::vector<double> input);
+    static void hammingWindow(std::vector<double> & output, const std::vector<double> & input);
 
     static std::complex<double> fftToComplex(fftw_complex * fft, long bin);
 
@@ -29,4 +29,17 @@ class SpectralProcessing {
      */
     static std::vector< std::pair<double, double> > findPeaks(
         fftw_complex * fft, long fftSize, long sampleRate);
+
+    static std::vector<double> onsetEnergy(
+        std::vector< std::vector<double> > audio,
+        long hopSize,
+        long windowRatio);
+
+    static std::vector<double> autoCorrelation(std::vector<double> signal);
+
+    static double tempoDetection(
+        std::vector< std::vector<double> > audio,
+        long hopSize,
+        long windowRatio,
+        long sampleRate);
 };
