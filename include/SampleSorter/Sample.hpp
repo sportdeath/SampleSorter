@@ -1,16 +1,23 @@
+#ifndef SAMPLE_H
+#define SAMPLE_H
+
 #include <string>
+
+#include "SampleSorter/Octave.hpp"
 
 class Sample {
   private:
     std::string file;
 
     bool isHarmonic_ = false;
-    //std::vector<Chord> chords;
+    std::vector<Octave> chords;
 
     bool isTuned = false;
 
     bool hasBeat_ = false;
-    double beat;
+    long tuningCents = 0;
+    double tempo;
+    double theOne;
 
     /**
      * Saves any processing done back to
@@ -34,7 +41,7 @@ class Sample {
      */
     void tune();
     void findBeat();
-    //void findChords();
+    void findChords();
   protected:
     void process();
   public:
@@ -76,7 +83,8 @@ class Sample {
      *
      * An error is returned if the sample has no beat
      */
-    double getBeat();
+    double getRawBeat();
+    double getBeatWithTuning();
 
     /**
      * Divides the sample into harmonically similar
@@ -86,5 +94,7 @@ class Sample {
      *
      * If the sample is inharmonic an error is returned
      */
-    //std::vector<Chord> getChords();
+    std::vector<Octave> getChords();
 };
+
+#endif

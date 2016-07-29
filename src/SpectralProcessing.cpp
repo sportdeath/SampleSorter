@@ -4,6 +4,7 @@
 #include <iostream>
 
 #include "SampleSorter/SpectralProcessing.hpp"
+#include "Plotting/Plotting.hpp"
 
 double SpectralProcessing::hammingWindow(long index, long size) {
   return 0.54 - 0.46 * cos(2 * M_PI * index/double(size));
@@ -121,18 +122,22 @@ std::vector<double> SpectralProcessing::onsetEnergy(
                                               FFTW_MEASURE);
 
   std::vector<double> lastMagnitude(fftSize);
+  std::vector<double> secToLastMagnitude(fftSize);
   std::vector<double> lastPhase(fftSize);
   std::vector<double> secToLastPhase(fftSize);
 
-  std::vector<double> output(audio[0].size()/hopSize);
+  long maxHop = audio[0].size()/hopSize - windowRatio + 1;
+
+  std::vector<double> output(maxHop);
   std::fill(output.begin(), output.end(), 0);
 
   for (long channel = 0; channel < audio.size(); channel ++) {
     std::fill(lastMagnitude.begin(), lastMagnitude.end(), 0);
+    std::fill(secToLastMagnitude.begin(), secToLastMagnitude.end(), 0);
     std::fill(lastPhase.begin(), lastPhase.end(), 0);
     std::fill(secToLastPhase.begin(), secToLastPhase.end(), 0);
 
-    for (long hop = 0; hop < audio[channel].size()/hopSize; hop++) {
+    for (long hop = 0; hop < maxHop; hop++) {
       // fill window with windowSize values
       // beginning at hopSize * hop
       // using hamming window
@@ -146,7 +151,7 @@ std::vector<double> SpectralProcessing::onsetEnergy(
       for (long i = 0; i < fftSize; i++) {
         //calculate expected values
         std::complex<double> phaseShift(0, 2*lastPhase[i] - secToLastPhase[i]);
-        std::complex<double> expected = lastMagnitude[i] * std::exp(phaseShift);
+        std::complex<double> expected = (2*lastMagnitude[i] - secToLastMagnitude[i]) * std::exp(phaseShift);
 
         // Euclidean distance of expected and actual
         output[hop] += std::hypot(fft[i][0] - std::real(expected),
@@ -155,6 +160,7 @@ std::vector<double> SpectralProcessing::onsetEnergy(
 
       //store the current values
       for (long i = 0; i < fftSize; i++) {
+        secToLastMagnitude[i] = lastMagnitude[i];
         lastMagnitude[i] = std::hypot(fft[i][0], fft[i][1]);
         secToLastPhase[i] = lastPhase[i];
         lastPhase[i] = std::atan2(fft[i][0], fft[i][1]);
@@ -162,14 +168,24 @@ std::vector<double> SpectralProcessing::onsetEnergy(
     }
   }
 
+  fftw_destroy_plan(fftPlan);
+  fftw_free(fft);
+
+  // normalize by window size and number of channels
   for (long i = 0; i < output.size(); i++) {
-    output[i] = output[i]/windowSize;
+    output[i] = output[i]/(windowSize * audio.size());
   }
+
+  //Plotting::plotVector(output);
 
   return output;
 }
 
-std::vector<double> SpectralProcessing::autoCorrelation(std::vector<double> signal) {
+std::vector<double> SpectralProcessing::autoCorrelation(
+    std::vector<double> signal,
+    double sampleRate,
+    double highPass,
+    double lowPass) {
   // Should this be windowed??
 
   // FFT
@@ -184,10 +200,18 @@ std::vector<double> SpectralProcessing::autoCorrelation(std::vector<double> sign
   fftw_execute(fftPlanFor);
   fftw_destroy_plan(fftPlanFor);
 
+  double highPassBin = (highPass * signal.size())/sampleRate;
+  double lowPassBin = (lowPass * signal.size())/sampleRate;
+
   // multiply with complex conjugate -> (a+bi)(a-bi) = (a^2 + b^2 + 0i)
   for (long i = 0; i < fftSize; i++) {
-    fft[i][0] = fft[i][0] * fft[i][0] + fft[i][1] * fft[i][1];
-    fft[i][1] = 0;
+    if (i < highPassBin or i > lowPassBin) {
+      fft[i][0] = 0;
+      fft[i][1] = 0;
+    } else {
+      fft[i][0] = fft[i][0] * fft[i][0] + fft[i][1] * fft[i][1];
+      fft[i][1] = 0;
+    }
   }
 
   std::vector<double> output(signal.size());
@@ -202,54 +226,10 @@ std::vector<double> SpectralProcessing::autoCorrelation(std::vector<double> sign
   fftw_destroy_plan(fftPlanInv);
   fftw_free(fft);
 
+  for (long i = 1; i < output.size(); i++) {
+    output[i] = output[i]/output[0];
+  }
+  output[0] = 1;
+
   return output;
 }
-
-
-double SpectralProcessing::tempoDetection(
-    std::vector< std::vector<double> > audio, 
-    long hopSize, 
-    long windowRatio,
-    long sampleRate) {
-
-
-  std::vector<double> onsets = onsetEnergy(audio, hopSize, windowRatio);
-  std::vector<double> correlation = autoCorrelation(onsets);
-
-  long fftSize = correlation.size()/2 + 1;
-  fftw_complex * fft;
-  fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
-  fftw_plan fftPlan = fftw_plan_dft_r2c_1d(correlation.size(),
-                                              correlation.data(),
-                                              fft,
-                                              FFTW_ESTIMATE);
-
-  fftw_execute(fftPlan);
-  fftw_destroy_plan(fftPlan);
-
-  std::vector<std::pair<double, double> > peaks = 
-    findPeaks(fft, fftSize, sampleRate/hopSize);
-
-  fftw_free(fft);
-
-  double max = 0;
-  double maxFreq = 0;
-  for (long i = 0; i < peaks.size(); i++) {
-    if (peaks[i].second > max) {
-        //and peaks[i].first * 60 > 20) {
-      max = peaks[i].second;
-      maxFreq = peaks[i].first;
-    }
-  }
-
-  return maxFreq;
-}
-
-
-// get onset energy
-// get autocorrelation of it
-// then take the first half of it and compute the fourier transform
-// 
-// onset energy has samplingRate/hopSize samples per second
-// autocorrelation has same sampling rate
-// transform of autocorrelation...

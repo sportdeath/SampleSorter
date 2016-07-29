@@ -23,6 +23,9 @@ set(PROJECT_SOURCES
   ${PROJECT_SOURCE_DIR}/Sample.cpp
   ${PROJECT_SOURCE_DIR}/Octave.cpp
   ${PROJECT_SOURCE_DIR}/SpectralProcessing.cpp
+  ${PROJECT_SOURCE_DIR}/Plotting.cpp
+  ${PROJECT_SOURCE_DIR}/Tempo.cpp
+  ${PROJECT_SOURCE_DIR}/EqualLoudness.cpp
 )
 
 include_directories("${PROJECT_INCLUDE_DIR}")

@@ -29,8 +29,9 @@ using namespace boost::filesystem;
 TEST(SamplesTest, FirstTest) {
   std::string library = "/Users/tfh/Dropbox (MIT)/UserLibrary/SampleLibrary/Chops";
   boost::filesystem::path libraryPath(library);
-
   processFiles(libraryPath);
+  
+  //AbletonSample("../testFile.alc");
 }
 
 int main(int argc, char ** argv) {

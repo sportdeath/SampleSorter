@@ -12,7 +12,7 @@
 
 #include <sndfile.hh>
 
-#include <SampleSorter/AbletonSample.hpp>
+#include "SampleSorter/AbletonSample.hpp"
 
 AbletonSample::AbletonSample(std::string file) 
   : Sample(file) {
@@ -52,6 +52,7 @@ tinyxml2::XMLDocument * AbletonSample::getDoc() {
 }
 
 long AbletonSample::getSampleRate() {
+  if (wavesExist) return sampleRate;
   getWaves();
   return sampleRate;
 }
@@ -130,6 +131,7 @@ std::vector< std::vector<double> > AbletonSample::getWaves() {
   for (long i = 0; i < size * audioFile.channels(); i++) {
     waves[i % audioFile.channels()][i/audioFile.channels()] = rawAudioData[i];
   }
+
 
   wavesExist = true;
   return waves;

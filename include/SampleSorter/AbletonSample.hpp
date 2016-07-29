@@ -1,3 +1,6 @@
+#ifndef ABLETON_SAMPLE_H
+#define ABLETON_SAMPLE_H
+
 #include <vector>
 
 #include <tinyxml2.h>
@@ -20,3 +23,5 @@ class AbletonSample : public Sample {
   public:
     AbletonSample(std::string file);
 };
+
+#endif

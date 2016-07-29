@@ -1,3 +1,6 @@
+#ifndef SPECTRAL_PROCESSING_H
+#define SPECTRAL_PROCESSING_H
+
 #include <complex>
 #include <fftw3.h>
 
@@ -35,11 +38,10 @@ class SpectralProcessing {
         long hopSize,
         long windowRatio);
 
-    static std::vector<double> autoCorrelation(std::vector<double> signal);
-
-    static double tempoDetection(
-        std::vector< std::vector<double> > audio,
-        long hopSize,
-        long windowRatio,
-        long sampleRate);
+    static std::vector<double> autoCorrelation(std::vector<double> signal,
+                                               double sampleRate = 1,
+                                               double highPass = 0,
+                                               double lowPass = 1);
 };
+
+#endif
