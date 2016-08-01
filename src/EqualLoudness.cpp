@@ -28,7 +28,8 @@ double EqualLoudness::CWeightingAmp(double freq) {
 }
 
 
-std::vector<std::vector<double> > EqualLoudness::filter(std::vector<std::vector<double> > audio, long sampleRate) {
+std::vector<std::vector<double> > EqualLoudness::filter(
+    std::vector<std::vector<double> > audio, long sampleRate) {
   long fftSize = audio[0].size()/2 + 1;
   fftw_complex * fft;
   fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
@@ -62,7 +63,7 @@ std::vector<std::vector<double> > EqualLoudness::filter(std::vector<std::vector<
     fftw_execute(fftPlanInv);
     fftw_destroy_plan(fftPlanInv);
   }
+  fftw_free(fft);
 
   return output;
 }
-

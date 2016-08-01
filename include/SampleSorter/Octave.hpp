@@ -19,39 +19,25 @@ class Octave {
     double CENTS_PER_BIN;
     double BINS_PER_SEMITONE;
 
-    static const std::vector<double> harmonicSeries;
-
-    static const std::vector<std::string> noteNames;
-
-    static const Octave unison;
-    static const Octave minorSecond;
-    static const Octave majorSecond;
-    static const Octave minorThird;
-    static const Octave majorThird;
-    static const Octave perfectFifth;
-    
-    static const Octave majorTriad;
-    static const Octave augmentedTriad;
-    static const Octave minorTriad;
-    static const Octave diminishedTriad;
-
-    static const std::vector<Octave> chords;
+    double magnitude = 1;
 
     Octave(std::vector< std::vector<double> > audio, 
            long numBins,
            long sampleRate,
-           long tuningCents = 0);
+           long tuningCents = 0,
+           bool quantize = false);
 
     Octave(fftw_complex * fft, 
            long fftSize,
            long numBins,
            long sampleRate,
-           long tuningCents = 0);
+           long tuningCents = 0,
+           bool quantize = false);
 
     Octave(long numBins = 12);
     Octave(std::vector<double> spec);
 
-    void addPeak(double peakFreq, double peakValue, double baseOffset);
+    void addPeak(double peakFreq, double peakValue, double baseOffset, double maxPeak, bool quantize = false);
 
     void rotate(long cents);
 
@@ -59,7 +45,7 @@ class Octave {
      * Returns the proportion of spectral energy
      * outside of bins.
      */
-    double tuningValue();
+    double tuningValue() const;
 
     /**
      * Tunes the octave by rotating it +-50 cents
@@ -68,14 +54,14 @@ class Octave {
      */
     long tune();
 
-    void plot();
+    void plot() const;
 
     void add(const Octave & other);
     void normalize();
 
     // 
-    double difference (const Octave & other);
-    double similarity (const Octave & other);
+    double difference (const Octave & other) const;
+    double similarity (const Octave & other) const;
     double dissonance ();
 
     static Octave mean(
@@ -88,7 +74,7 @@ class Octave {
         std::vector<Octave>::iterator begin,
         std::vector<Octave>::iterator end);
 
-    std::string Octave::mostSimilarChord();
+    std::string mostSimilarChord();
 };
 
 #endif

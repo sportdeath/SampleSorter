@@ -13,6 +13,7 @@ Sample::Sample(std::string file_) {
 }
 
 void Sample::process() {
+  std::cout << "Processing '" << getName() << "'" << std::endl;
   tune();
   findBeat();
   findChords();
@@ -45,90 +46,59 @@ void Sample::findBeat() {
 
   tempo = tempoOne.first;
   theOne = tempoOne.second;
+
+  std::cout << "the one (with tuning): " << getTheOneWithTuning() << std::endl;
+  std::cout << "Tempo (before tuning): " << 60*getRawBeat() << std::endl;
+  std::cout << "Tempo (with tuning): " << 60*getBeatWithTuning() << std::endl;
 }
 
 void Sample::findChords() {
-  long hopSize = 1024;
+  long windowSize = Tempo::tempoToSamples(tempo, getSampleRate());
   long octaveSize = 12;
 
-  std::vector<double> window(hopSize);
+  std::vector<double> window(windowSize);
 
   // set up fourier transform
-  long fftSize = hopSize/2 + 1;
+  long fftSize = windowSize/2 + 1;
   fftw_complex * fft;
   fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
-  fftw_plan fftPlan = fftw_plan_dft_r2c_1d(hopSize,
+  fftw_plan fftPlan = fftw_plan_dft_r2c_1d(windowSize,
                                            window.data(),
                                            fft,
-                                           FFTW_MEASURE);
+                                           FFTW_ESTIMATE);
 
   std::vector<std::vector<double> > a = getWaves();
-  long maxHop = a[0].size()/hopSize;
+  a = EqualLoudness::filter(a, getSampleRate());
 
-  std::vector<Octave> octaves(maxHop);
+  long theOneSamples = Tempo::secondsToSamples(theOne, getSampleRate());
+  long maxWindow = (a[0].size() - theOneSamples)/windowSize;
 
-  for (long hop = 0; hop < maxHop; hop++) {
+  std::vector<Octave> octaves(maxWindow);
+
+  for (long hop = 0; hop < maxWindow; hop++) {
     octaves[hop] = Octave(octaveSize);
     for (long channel = 0; channel < a.size(); channel ++) {
-      for (long i = 0; i < hopSize; i++) {
-        window[i] = a[channel][i + hop * hopSize];
-        window[i] = window[i] * SpectralProcessing::hammingWindow(i, hopSize);
+      for (long i = 0; i < windowSize; i++) {
+        window[i] = a[channel][theOneSamples + i + hop * windowSize];
+        window[i] = window[i] * SpectralProcessing::hammingWindow(i, windowSize);
       }
 
       fftw_execute(fftPlan);
-      Octave channelOctave(fft, fftSize, octaveSize, getSampleRate(), tuningCents);
+      Octave channelOctave(fft, fftSize, octaveSize, getSampleRate(), tuningCents, true);
 
       octaves[hop].add(channelOctave);
     }
+    octaves[hop].plot();
   }
 
 
   fftw_free(fft);
   fftw_destroy_plan(fftPlan);
 
-  // could use hopsize so that its a nice multiple...
-  long searchSize = getSampleRate()/double(getRawBeat() * hopSize);
-
-  std::vector<double> dissonances(searchSize);
-
-  for (long searchPos = 0; searchPos < searchSize; searchPos ++) {
-    std::vector<Octave>::iterator begin = octaves.begin();
-    std::vector<Octave>::iterator end = begin + searchPos;
-    double dissonance = 0;
-    while (end < octaves.end()) {
-      dissonance += Octave::dissonance(begin, end);
-      begin = end;
-      end = begin + searchSize;
-    }
-    end = octaves.end();
-    dissonance += Octave::dissonance(begin, end);
-    dissonances[searchPos] = dissonance;
+  for (long i = 0; i < octaves.size(); i++) {
+    //std::cout << "@" << Tempo::binsToSeconds(i, windowSize, getSampleRate()) + theOne <<": " << octaves[i].mostSimilarChord() << std::endl;
+    //octaves[i].plot();
   }
-
-  double minimum = dissonances[0];
-  long minIndex =0;
-  for (long i = 0; i < searchSize; i++) {
-    if (dissonances[i] < minimum) {
-      minimum = dissonances[i];
-      minIndex = i;
-    }
-  }
-
-  std::cout << "The 1 found at " << (minIndex * hopSize)/double(getSampleRate()) << " seconds" << std::endl;
-
-  //Plotting::plotVector(dissonances);
-
-  std::vector<Octave>::iterator begin = octaves.begin();
-  std::vector<Octave>::iterator end = begin + minIndex;
-  while (end < octaves.end()) {
-    Octave m = Octave::mean(begin, end);
-    chords.push_back(m);
-    begin = end;
-    end = begin + searchSize;
-  }
-  end = octaves.end();
-  Octave m = Octave::mean(begin, end);
-  chords.push_back(m);
 }
 
 bool Sample::isHarmonic() {
@@ -143,13 +113,38 @@ double Sample::getRawBeat() {
   return tempo;
 }
 
-double Sample::getBeatWithTuning() {
-  return tempo;
+double Sample::getBeatWithTuning() const {
+  return tempo * pow(2., tuningCents/1200.);
+}
+double Sample::getTheOneWithTuning() const {
+  return theOne / pow(2., tuningCents/1200.);
 }
 
 std::vector<Octave> Sample::getChords() {
   return chords;
 }
+
+bool Sample::isCompatible(const Sample & other) {
+  // get larger tempo
+  double larger, smaller;
+  larger = std::max(getBeatWithTuning(), other.getBeatWithTuning());
+  smaller = std::min(getBeatWithTuning(), other.getBeatWithTuning());
+  long ratio = std::round(larger/smaller);
+  double tuningSteps = 12 * std::log2(larger/(ratio * smaller));
+  //double integerDeviation = std::fmod(tuningSteps, 1.);
+  double integerDeviation = tuningSteps - std::round(tuningSteps);
+
+  if (std::abs(integerDeviation) < 0.05) {
+    std::cout << "'" << getName() << "' is compatible with '" << other.getName() <<"'" << std::endl;
+    std::cout << "Tempos: " << 60*getBeatWithTuning() <<", " << 60*other.getBeatWithTuning() << std::endl;
+    std::cout << "Tuning cents: " << tuningCents <<", " << other.tuningCents << std::endl;
+    std::cout << "Tuning ratio: " << std::round(tuningSteps) << " steps and " << integerDeviation * 100 << " cents" << std::endl << std::endl;
+  }
+
+  return integerDeviation < 0.05;
+}
+
+  // find whether that ratio is an even number of cents
 
 //bool Sample::isSimilar(const & Sample other) {
   //// coarse tune so their tempos are equal

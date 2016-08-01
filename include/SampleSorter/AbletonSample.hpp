@@ -14,6 +14,7 @@ class AbletonSample : public Sample {
     bool wavesExist = false;
     std::vector< std::vector<double> > waves;
     long sampleRate;
+    std::string name;
 
     tinyxml2::XMLDocument * getDoc();
 
@@ -21,7 +22,10 @@ class AbletonSample : public Sample {
     long getSampleRate();
 
   public:
+    std::string getName() const;
     AbletonSample(std::string file);
+
+    AbletonSample(const AbletonSample & other);
 };
 
 #endif

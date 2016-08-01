@@ -7,6 +7,7 @@
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 #include <boost/iostreams/copy.hpp>
+#include <boost/filesystem.hpp>
 
 #include <tinyxml2.h>
 
@@ -14,8 +15,18 @@
 
 #include "SampleSorter/AbletonSample.hpp"
 
+AbletonSample::AbletonSample(const AbletonSample & other) 
+  : Sample(other)
+{
+  name = other.name;
+  docExists = false;
+  wavesExist = false;
+}
+
 AbletonSample::AbletonSample(std::string file) 
   : Sample(file) {
+
+    name = boost::filesystem::path(file).stem().native();
 
     try {
       process();
@@ -32,8 +43,6 @@ AbletonSample::AbletonSample(std::string file)
 }
 
 tinyxml2::XMLDocument * AbletonSample::getDoc() {
-  if (docExists) return &doc;
-
   // Ungzip
   std::stringstream unzipped;
 
@@ -57,7 +66,9 @@ long AbletonSample::getSampleRate() {
   return sampleRate;
 }
 
-
+std::string AbletonSample::getName() const {
+  return name;
+}
 
 std::vector< std::vector<double> > AbletonSample::getWaves() {
   if (wavesExist) return waves;

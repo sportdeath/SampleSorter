@@ -35,6 +35,8 @@ class Sample {
 
     virtual long getSampleRate() = 0;
 
+    virtual std::string getName() const = 0;
+
     /**
      * Tunes the sample to A = 440
      * and updates the file structure
@@ -57,6 +59,7 @@ class Sample {
     Sample(std::string file);
 
     std::string getFile();
+
 
     /**
      * Returns whether or not the sample
@@ -84,7 +87,8 @@ class Sample {
      * An error is returned if the sample has no beat
      */
     double getRawBeat();
-    double getBeatWithTuning();
+    double getBeatWithTuning() const;
+    double getTheOneWithTuning() const;
 
     /**
      * Divides the sample into harmonically similar
@@ -95,6 +99,8 @@ class Sample {
      * If the sample is inharmonic an error is returned
      */
     std::vector<Octave> getChords();
+
+    bool isCompatible(const Sample & other);
 };
 
 #endif

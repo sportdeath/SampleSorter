@@ -26,6 +26,7 @@ set(PROJECT_SOURCES
   ${PROJECT_SOURCE_DIR}/Plotting.cpp
   ${PROJECT_SOURCE_DIR}/Tempo.cpp
   ${PROJECT_SOURCE_DIR}/EqualLoudness.cpp
+  ${PROJECT_SOURCE_DIR}/MusicTheory.cpp
 )
 
 include_directories("${PROJECT_INCLUDE_DIR}")

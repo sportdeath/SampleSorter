@@ -107,7 +107,6 @@ double Tempo::correlationTempo(std::vector<double> onsets,
     }
   }
 
-  std::cout << "tempo = " << tempo * 60 << std::endl;
   return tempo;
 }
 
@@ -151,7 +150,5 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
   }
 
   //Plotting::plotVector(tempoValues);
-  std::cout << "tuned tempo = "  << minTempo*60 << std::endl;
-  std::cout << "min one = " << binsToSeconds(minOne, hopSize, sampleRate) << std::endl;
   return std::make_pair(minTempo, binsToSeconds(minOne, hopSize, sampleRate));
 }
