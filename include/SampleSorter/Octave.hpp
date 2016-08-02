@@ -24,20 +24,23 @@ class Octave {
     Octave(std::vector< std::vector<double> > audio, 
            long numBins,
            long sampleRate,
-           long tuningCents = 0,
-           bool quantize = false);
+           long tuningCents = 0);
 
     Octave(fftw_complex * fft, 
            long fftSize,
            long numBins,
            long sampleRate,
-           long tuningCents = 0,
-           bool quantize = false);
+           long tuningCents = 0);
 
     Octave(long numBins = 12);
     Octave(std::vector<double> spec);
 
-    void addPeak(double peakFreq, double peakValue, double baseOffset, double maxPeak, bool quantize = false);
+    long getBins() const;
+
+    double getBinsPerSemitone() const;
+    double getCentsPerBin() const;
+
+    void addPeak(double peakFreq, double peakValue, double baseOffset);
 
     void rotate(long cents);
 
@@ -56,25 +59,7 @@ class Octave {
 
     void plot() const;
 
-    void add(const Octave & other);
-    void normalize();
-
-    // 
-    double difference (const Octave & other) const;
-    double similarity (const Octave & other) const;
-    double dissonance ();
-
-    static Octave mean(
-        std::vector<Octave>::iterator begin,
-        std::vector<Octave>::iterator end);
-    static double selfSimilarity(
-        std::vector<Octave>::iterator begin,
-        std::vector<Octave>::iterator end);
-    static double dissonance(
-        std::vector<Octave>::iterator begin,
-        std::vector<Octave>::iterator end);
-
-    std::string mostSimilarChord();
+    void add(Octave & output, const Octave & that) const;
 };
 
 #endif

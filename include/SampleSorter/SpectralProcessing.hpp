@@ -42,6 +42,10 @@ class SpectralProcessing {
                                                double sampleRate = 1,
                                                double highPass = 0,
                                                double lowPass = 1);
+
+    static double getEnergy(const fftw_complex * fft, long fftSize);
+    static double getAverageEnergyPerSample(const fftw_complex * fft, long fftSize);
+    static double getAverageEnergyPerSecond(const fftw_complex * fft, long fftSize, long sampleRate);
 };
 
 #endif

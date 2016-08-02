@@ -4,6 +4,7 @@
 #include "SampleSorter/Sample.hpp"
 #include "SampleSorter/Octave.hpp"
 #include "SampleSorter/SpectralProcessing.hpp"
+#include "SampleSorter/TimeDomainProcessing.hpp"
 #include "SampleSorter/Tempo.hpp"
 #include "Plotting/Plotting.hpp"
 #include "SampleSorter/EqualLoudness.hpp"
@@ -26,7 +27,8 @@ std::string Sample::getFile() {
 
 void Sample::tune() {
   std::vector<std::vector<double> > a = getWaves();
-  a = EqualLoudness::filter(a, getSampleRate());
+  EqualLoudness::filter(a, a, getSampleRate());
+  TimeDomainProcessing::normalizeEnergy(a, a, getSampleRate());
   Octave o(a, 1200, getSampleRate(), tuningCents);
   tuningCents = o.tune();
   std::cout << "tuned by " << tuningCents << " cents" << std::endl;
@@ -68,7 +70,8 @@ void Sample::findChords() {
                                            FFTW_ESTIMATE);
 
   std::vector<std::vector<double> > a = getWaves();
-  a = EqualLoudness::filter(a, getSampleRate());
+  EqualLoudness::filter(a, a, getSampleRate());
+  TimeDomainProcessing::normalizeEnergy(a, a, getSampleRate());
 
   long theOneSamples = Tempo::secondsToSamples(theOne, getSampleRate());
   long maxWindow = (a[0].size() - theOneSamples)/windowSize;
@@ -84,11 +87,10 @@ void Sample::findChords() {
       }
 
       fftw_execute(fftPlan);
-      Octave channelOctave(fft, fftSize, octaveSize, getSampleRate(), tuningCents, true);
+      Octave channelOctave(fft, fftSize, octaveSize, getSampleRate(), tuningCents);
 
-      octaves[hop].add(channelOctave);
+      octaves[hop].add(octaves[hop], channelOctave);
     }
-    octaves[hop].plot();
   }
 
 
@@ -96,8 +98,10 @@ void Sample::findChords() {
   fftw_destroy_plan(fftPlan);
 
   for (long i = 0; i < octaves.size(); i++) {
-    //std::cout << "@" << Tempo::binsToSeconds(i, windowSize, getSampleRate()) + theOne <<": " << octaves[i].mostSimilarChord() << std::endl;
-    //octaves[i].plot();
+    std::cout << "@" << Tempo::binsToSeconds(i, windowSize, getSampleRate()) + theOne <<": " 
+      << std::endl;
+      //<< octaves[i].mostSimilarChord() << std::endl;
+    octaves[i].plot();
   }
 }
 

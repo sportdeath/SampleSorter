@@ -20,7 +20,8 @@ class Tempo {
                            double theOne,
                            std::vector<double> offsets,
                            long hopSize,
-                           long sampleRate);
+                           long sampleRate,
+                           bool bidirectional);
 
 
   static std::pair<double, double> fineTuneTempo(double tempo,

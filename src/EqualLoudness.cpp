@@ -27,17 +27,17 @@ double EqualLoudness::CWeightingAmp(double freq) {
   return top/(bot1*bot2);
 }
 
-
-std::vector<std::vector<double> > EqualLoudness::filter(
-    std::vector<std::vector<double> > audio, long sampleRate) {
+void EqualLoudness::filter(
+    std::vector<std::vector<double> > & output,
+    std::vector<std::vector<double> > & audio,
+    long sampleRate) {
   long fftSize = audio[0].size()/2 + 1;
   fftw_complex * fft;
   fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
 
-  std::vector<std::vector<double> > output(audio.size());
+  output.resize(audio.size());
 
   for (long channel = 0; channel < audio.size(); channel ++) {
-    output[channel].resize(audio[channel].size());
     fftw_plan fftPlanFor = fftw_plan_dft_r2c_1d(audio[channel].size(),
                                              audio[channel].data(),
                                              fft,
@@ -54,6 +54,7 @@ std::vector<std::vector<double> > EqualLoudness::filter(
 
     fftw_destroy_plan(fftPlanFor);
 
+    output[channel].resize(audio[channel].size());
     fftw_plan fftPlanInv = fftw_plan_dft_c2r_1d(audio[channel].size(),
                                              fft,
                                              output[channel].data(),
@@ -64,6 +65,4 @@ std::vector<std::vector<double> > EqualLoudness::filter(
     fftw_destroy_plan(fftPlanInv);
   }
   fftw_free(fft);
-
-  return output;
 }

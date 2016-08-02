@@ -43,6 +43,8 @@ AbletonSample::AbletonSample(std::string file)
 }
 
 tinyxml2::XMLDocument * AbletonSample::getDoc() {
+  if (docExists) return &doc;
+
   // Ungzip
   std::stringstream unzipped;
 
@@ -142,7 +144,6 @@ std::vector< std::vector<double> > AbletonSample::getWaves() {
   for (long i = 0; i < size * audioFile.channels(); i++) {
     waves[i % audioFile.channels()][i/audioFile.channels()] = rawAudioData[i];
   }
-
 
   wavesExist = true;
   return waves;

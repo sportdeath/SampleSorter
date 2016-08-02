@@ -38,15 +38,16 @@ double Tempo::tempoValue(double tempo,
                          double theOne,
                          std::vector<double> onsets, 
                          long hopSize,
-                         long sampleRate) {
+                         long sampleRate,
+                         bool bidirectional) {
   double value = 0;
   for (long i = 0; i < onsets.size(); i++) {
     double distanceFromBeat = (i - theOne)/tempoToBins(tempo, hopSize, sampleRate);
-    distanceFromBeat = std::fmod(distanceFromBeat, 1);
-    while (distanceFromBeat < 0)
-      distanceFromBeat += 1;
-    //if (distanceFromBeat > 0.5)
-      //distanceFromBeat = 1 - distanceFromBeat;
+    if (bidirectional) {
+      distanceFromBeat = std::abs(distanceFromBeat - std::round(distanceFromBeat));
+    } else {
+      distanceFromBeat = distanceFromBeat - std::floor(distanceFromBeat);
+    }
 
     value += distanceFromBeat * onsets[i];
   }
@@ -121,9 +122,9 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
 
   //Plotting::plotVector(onsets);
 
+  // first find the bidirectional minima
   double minTempoValue = onsets.size();
   double minTempo = tempo;
-  double minOne = 0;
   for (double tempoAdjustment = -BPSrange; 
        tempoAdjustment <=BPSrange; 
        tempoAdjustment += BPSstepSize) {
@@ -134,11 +135,10 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
     for (double theOne = 0; 
          theOne < tempoToBins(trialTempo, hopSize, sampleRate); 
          theOne ++) {
-      double newTempoValue = tempoValue(trialTempo, theOne, onsets, hopSize, sampleRate);
+      double newTempoValue = tempoValue(trialTempo, theOne, onsets, hopSize, sampleRate, true);
       if (newTempoValue < minTempoValue) {
         minTempoValue = newTempoValue;
         minTempo = trialTempo;
-        minOne = theOne;
       }
 
       if (newTempoValue < thisMinValue) {
@@ -149,6 +149,22 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
     tempoValues.push_back(thisMinValue);
   }
 
-  //Plotting::plotVector(tempoValues);
+  // then search for the start of the beat
+  minTempoValue = onsets.size();
+  std::vector<double> minValues;
+  double minOne = 0;
+  for (double theOne = 0; 
+       theOne < tempoToBins(minTempo, hopSize, sampleRate)+10; 
+       theOne ++) {
+    double newTempoValue = tempoValue(minTempo, theOne, onsets, hopSize, sampleRate, false);
+    if (newTempoValue < minTempoValue) {
+      minTempoValue = newTempoValue;
+      minOne = theOne;
+    }
+    minValues.push_back(newTempoValue);
+  }
+
+  Plotting::plotVector(tempoValues);
+  Plotting::plotVector(minValues);
   return std::make_pair(minTempo, binsToSeconds(minOne, hopSize, sampleRate));
 }

@@ -7,7 +7,8 @@
 #include "Plotting/Plotting.hpp"
 
 double SpectralProcessing::hammingWindow(long index, long size) {
-  return 0.54 - 0.46 * cos(2 * M_PI * index/double(size));
+  return (0.54 - 0.46 * cos(2 * M_PI * index/double(size)));
+  //*1.58;
 }
 
 void SpectralProcessing::hammingWindow(std::vector<double> & output, const std::vector<double> & input) {
@@ -77,6 +78,11 @@ std::complex<double> SpectralProcessing::fftToComplex(fftw_complex * fft, long b
 std::vector< std::pair<double, double> > SpectralProcessing::findPeaks(
     fftw_complex * fft, long fftSize, long sampleRate) {
 
+  std::vector<double> fftVector(fftSize);
+  for (long i = 0; i < fftSize; i++) {
+    fftVector[i] = (fft[i][0]*fft[i][0]+ fft[i][1]*fft[i][1])/fftSize;
+  }
+
   std::vector< std::pair<double, double> > output;
   std::complex<double> left, mid, right;
 
@@ -94,14 +100,16 @@ std::vector< std::pair<double, double> > SpectralProcessing::findPeaks(
         double peakBin = bin + delta;
         double peakFreq = (peakBin * sampleRate)/(2*fftSize + 1);
         double peakAmp = quinnsAmpEstimator(delta, left, mid, right);
+        // normalize by sample size
+        peakAmp = 2.*(peakAmp*peakAmp)/(2. * fftSize);
         std::pair<double, double> peak(peakFreq, peakAmp);
         output.push_back(peak);
       }
     }
   }
+
   return output;
 }
-
 
 // From Bello et al.
 // On the use of phase and energy for musical onset detection in the complex domain
@@ -176,8 +184,6 @@ std::vector<double> SpectralProcessing::onsetEnergy(
     output[i] = output[i]/(windowSize * audio.size());
   }
 
-  //Plotting::plotVector(output);
-
   return output;
 }
 
@@ -203,7 +209,7 @@ std::vector<double> SpectralProcessing::autoCorrelation(
   double highPassBin = (highPass * signal.size())/sampleRate;
   double lowPassBin = (lowPass * signal.size())/sampleRate;
 
-  // multiply with complex conjugate -> (a+bi)(a-bi) = (a^2 + b^2 + 0i)
+  // multiply with complex conjugate -> (a+bi)(a-bi) = (a^2 + b^2) + 0i
   for (long i = 0; i < fftSize; i++) {
     if (i < highPassBin or i > lowPassBin) {
       fft[i][0] = 0;
@@ -232,4 +238,20 @@ std::vector<double> SpectralProcessing::autoCorrelation(
   output[0] = 1;
 
   return output;
+}
+
+double SpectralProcessing::getEnergy(const fftw_complex * fft, long fftSize) {
+  double total = 0;
+  for (long i = 0; i < fftSize; i++) {
+    total += fft[i][0] *fft[i][0] + fft[i][1] * fft[i][1];
+  }
+  return 2.*total/double(2.*fftSize);
+}
+
+double SpectralProcessing::getAverageEnergyPerSample(const fftw_complex * fft, long fftSize) {
+  return getEnergy(fft, fftSize)/double(2.*fftSize);
+}
+
+double SpectralProcessing::getAverageEnergyPerSecond(const fftw_complex * fft, long fftSize, long sampleRate) {
+  return getAverageEnergyPerSample(fft, fftSize) * sampleRate;
 }

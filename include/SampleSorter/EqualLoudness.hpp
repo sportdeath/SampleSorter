@@ -5,8 +5,9 @@ class EqualLoudness {
   public:
     static double AWeightingAmp(double freq);
     static double CWeightingAmp(double freq);
-    static std::vector<std::vector<double> > filter(
-        std::vector<std::vector<double> > audio, 
+    static void filter(
+        std::vector<std::vector<double> > & output, 
+        std::vector<std::vector<double> > & audio, 
         long sampleRate);
 
 };
