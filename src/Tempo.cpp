@@ -65,7 +65,7 @@ double Tempo::correlationTempo(std::vector<double> onsets,
   // Clips with tempo must contain at least 2 beats
   double highPass = 2./binsToSeconds(onsets.size(), hopSize, sampleRate);
   // Also beat cannot be below 1/8 persecond
-  highPass = std::max(highPass, 1/4.);
+  highPass = std::max(highPass, 1.);
 
   // No tempos will exist above 1000bpm
   double lowPass = 1000/60.;
@@ -154,7 +154,7 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
   std::vector<double> minValues;
   double minOne = 0;
   for (double theOne = 0; 
-       theOne < tempoToBins(minTempo, hopSize, sampleRate)+10; 
+       theOne < tempoToBins(minTempo, hopSize, sampleRate)+1; 
        theOne ++) {
     double newTempoValue = tempoValue(minTempo, theOne, onsets, hopSize, sampleRate, false);
     if (newTempoValue < minTempoValue) {
@@ -164,7 +164,5 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
     minValues.push_back(newTempoValue);
   }
 
-  Plotting::plotVector(tempoValues);
-  Plotting::plotVector(minValues);
   return std::make_pair(minTempo, binsToSeconds(minOne, hopSize, sampleRate));
 }

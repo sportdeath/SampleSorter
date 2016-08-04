@@ -1,7 +1,7 @@
 #include <string>
 #include <iostream>
 
-#include <SampleSorter/AbletonSample.hpp>
+#include <SampleSorter/AbletonSampleFile.hpp>
 
 #include <boost/filesystem.hpp>
 
@@ -10,7 +10,7 @@
 
 void processFiles(boost::filesystem::path pathName) {
 
-  std::vector<AbletonSample> allSamples;
+  std::vector<AbletonSampleFile> allSamples;
 using namespace boost::filesystem;
 
   directory_iterator end_itr;
@@ -22,9 +22,9 @@ using namespace boost::filesystem;
     } else if (itr -> path().extension() == ".alc") {
       std::string fileName = itr -> path().native();
       std::cout << allSamples.size() << std::endl;
-      AbletonSample sample(fileName);
+      AbletonSampleFile sample(fileName);
       for (long i = 0; i < allSamples.size(); i++) {
-        sample.isCompatible(allSamples[i]);
+        //sample.isCompatible(allSamples[i]);
       }
       allSamples.push_back(sample);
       std::cout << "new size: " << allSamples.size() << std::endl;
@@ -38,7 +38,10 @@ TEST(SamplesTest, FirstTest) {
   //boost::filesystem::path libraryPath(library);
   //processFiles(libraryPath);
   
-  AbletonSample("../testFile.alc");
+  AbletonSampleFile a("../testFile.alc");
+  a.process();
+  std::cout << "tuning cents: " << a.getAudioSample() -> getTuningCents() << std::endl;
+  std::cout << "tempo: " << 60.*(a.getAudioSample() -> getBeatWithTuning()) << std::endl;
 }
 
 int main(int argc, char ** argv) {

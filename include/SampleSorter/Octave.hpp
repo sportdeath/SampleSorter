@@ -60,6 +60,8 @@ class Octave {
     void plot() const;
 
     void add(Octave & output, const Octave & that) const;
+
+    std::vector<double> getSpectrogram() const;
 };
 
 #endif

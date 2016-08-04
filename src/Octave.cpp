@@ -38,9 +38,6 @@ Octave::Octave(std::vector< std::vector<double> > audio,
   for (long channel = 0; channel < audio.size(); channel ++) {
     // Window the audio
     SpectralProcessing::hammingWindow(windows, audio[channel]);
-    //for (long i = 0; i < audio[channel].size(); i++) {
-      //windows[i] = audio[channel][i];
-    //}
 
     // Take the fourier transform
     fftw_execute(fftPlan);
@@ -86,9 +83,11 @@ double Octave::getCentsPerBin() const {
 }
 
 void Octave::addPeak(double peakFreq, double peakValue, double baseOffset) {
-  if (peakFreq > 3000)
+  if (peakFreq > 1000)
     // Humans do not consider pitches
     // greater than 5000 to have harmonic content
+    return;
+  if (peakValue < 0.005)
     return;
 
   double freqMod = fmod(log2(peakFreq) + baseOffset, 1);
@@ -96,21 +95,30 @@ void Octave::addPeak(double peakFreq, double peakValue, double baseOffset) {
     freqMod += 1;
   } 
 
-  // We want the spectral energy:
-
   double desiredBin = freqMod * getBins();
 
-  long leftBin = floor(desiredBin);
-  long rightBin = (leftBin + 1) % getBins();
+  if (true) {
+    long bin = long(std::round(desiredBin)) % getBins();
+    spectrogram[bin] += peakValue;
+  } else {
+    long leftBin = floor(desiredBin);
+    long rightBin = (leftBin + 1) % getBins();
 
-  double rightPercent = desiredBin - leftBin;
-  double leftPercent = 1 - rightPercent;
+    double rightPercent = desiredBin - leftBin;
+    double leftPercent = 1 - rightPercent;
 
-  double rightAmp = rightPercent * peakValue;
-  double leftAmp = leftPercent * peakValue;
+    double rightAmp = rightPercent * peakValue;
+    double leftAmp = leftPercent * peakValue;
 
-  spectrogram[leftBin] += leftAmp;
-  spectrogram[rightBin] += rightAmp;
+    if (std::isnan(rightAmp) or std::isnan(leftAmp) ) {
+      std::cout << "ahhhh" << std::endl;
+      std::cout << peakValue << std::endl;
+      std::cout << desiredBin << std::endl;
+    }
+
+    spectrogram[leftBin] += leftAmp;
+    spectrogram[rightBin] += rightAmp;
+  }
 }
 
 void Octave::rotate(long bins) {
@@ -171,4 +179,8 @@ void Octave::add(Octave & output, const Octave & other) const {
     output.spectrogram[bin] = spectrogram[bin] + other.spectrogram[bin];
     output.spectrogram[bin] /= 2.;
   }
+}
+
+std::vector<double> Octave::getSpectrogram() const {
+  return spectrogram;
 }

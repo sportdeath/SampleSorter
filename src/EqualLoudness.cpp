@@ -48,8 +48,8 @@ void EqualLoudness::filter(
       // get freq of bin
       double freq = bin * sampleRate/audio[channel].size();
       // multiply by weighting
-      fft[bin][0] *= CWeightingAmp(freq);
-      fft[bin][1] *= CWeightingAmp(freq);
+      fft[bin][0] *= AWeightingAmp(freq);
+      fft[bin][1] *= AWeightingAmp(freq);
     }
 
     fftw_destroy_plan(fftPlanFor);

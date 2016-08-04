@@ -43,9 +43,14 @@ double SpectralProcessing::quinnsFreqEstimator(std::complex<double> left,
 }
 
 std::complex<double> SpectralProcessing::quinnC(double delta, short indexK) {
+  // From the limit
+  if (delta == 0)
+    return 0.5*(indexK == 0);
+
   std::complex<double> I(0,1);
   std::complex<double> top = exp(2 * M_PI * I * delta) - 1.;
   std::complex<double> bot = 4 * M_PI * I * (delta - indexK);
+
   return top/bot;
 }
 
