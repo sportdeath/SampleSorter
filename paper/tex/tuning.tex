@@ -1,0 +1,14 @@
+\section{Tuning}
+
+In order to get the sample ready to be heard by our machine learner, the first thing we do is tune the sample so that the frequencies will fit nicely into semitone bins.
+This is the easiest step, but it introduces some techniques we will be using later on.
+
+We will assume, very reasonably, that the song being taken as the input is not long enough that the instruments began to go out of tune, and was recorded and transcoded with good technology - a turntable with a stable belt, etc. 
+Therefore the tuning will be constant which makes our job easier.
+
+What we will do is take the fourier transform and then lump frequencies together into bins. 
+This is fairly good for large samples, but for small samples, sometimes the frequency resolution isn't fine enough to discriminate between semitones, so we will use frequency estimation:
+
+\begin{align*}
+  \kappa(x) = 
+\end{align*}

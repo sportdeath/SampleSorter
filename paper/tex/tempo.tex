@@ -1,0 +1,69 @@
+\section{Tempo Detection}
+
+Tempo detection
+Approximating the tempo
+Onset detection
+Autocorrelation
+Then use wavelets to detect self similarity
+
+Tempo detection happens in three steps.
+First we convert the audio signal into an ``onset'' signal, which is a positive signal whose amplitude correlates to to how much the signal is changing at that point. This signal is high when the amplitude or pitch of the signal suddenly changes, which would be a ``beat.''
+Next we approximate the tempo by looking for the frequency of self simiarity in this onset signal.
+Finally, we fine tune this approximation to get function for the tempo that minimizes the ammount of onset information that occurs off-beat.
+
+Onset signal
+
+Using an analysis by [], we are going to 
+We window the audio signal into frames.
+We use the previous two frames to linearly predict what the third frame should be.
+If the signal is changing this third frame will be different than the previous two.
+So we simply calculate the euclidean distance between our predicted frame and the actual frame.
+
+Approximating the signal
+
+A tempo in music is the frequency at which the music exhibits some sort of self similarity. Self similariy on music exists on many levels. There is repeating verse structure - 16 bars, repeating chord progressions - 4 bars, repeating drum beats - 1 bar, and the beat itself - 1 quarter note.
+In order to divide up a song as finely as to display its harmonic and rythmic features want to find the minimum frequency at which the song exhibits self similarity. 
+
+Fine tuning the approximation
+
+Many modern music recordings are 
+
+While in most cases playing to a click or quantized electronic music has a perfectly consistent tempo, we would like to include music played live, where the tempo can slowly shift or change
+Series approximation with wavelets?
+Fourier series?
+Polynomial approximation
+Approximation
+$b(t) = a_0+a_1t+...$
+$b(t) = a_0 + a_1cos($
+Find coeffiecient, then next coefficient must have average of first ...
+Most songs will have 0 higher order coefficients
+But those that fluctuate will not.
+
+We want to minimize the function
+\begin{align*}
+  F =
+  \sum_{bin = 0}^{numBins}
+  \eta(bin)(1 - \cos(f(t))
+\end{align*}
+Where
+\begin{align*}
+  f(t) = \alpha t + a_0 + 
+  \sum_{i = 1}^k 
+  a_i\cos\left(\frac{2i\pi t}{N}\right)
+  +
+  b_i\sin\left(\frac{2i\pi t}{N}\right)
+\end{align*}
+
+\begin{align*}
+  \nabla F = 
+  \sum_{bin = 0}^{numBins}
+  \left(
+  -\eta(bin)\sin(f(t))
+  +
+  \left( 
+  \sum_{i = 1}^k
+  \eta(bin)\frac{N}{2i\pi t}\sin\left(\frac{2i\pi t}{N}\right)\sin(f(t))
+  -\eta(bin)\frac{N}{2i\pi t}\cos\left(\frac{2i\pi t}{N}\right)\sin(f(t))
+  \right)
+  \right)
+\end{align*}

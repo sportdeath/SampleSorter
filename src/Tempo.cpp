@@ -55,6 +55,27 @@ double Tempo::tempoValue(double tempo,
   return value;//tempoToBins(tempo, hopSize, sampleRate);
 }
 
+double Tempo::tempoValue(double tempo, 
+                         double theOne,
+                         std::vector<double> onsets, 
+                         long hopSize,
+                         long sampleRate,
+                         bool bidirectional) {
+  double value = 0;
+  for (long i = 0; i < onsets.size(); i++) {
+    double distanceFromBeat = (i - theOne)/tempoToBins(tempo, hopSize, sampleRate);
+    if (bidirectional) {
+      distanceFromBeat = std::abs(distanceFromBeat - std::round(distanceFromBeat));
+    } else {
+      distanceFromBeat = distanceFromBeat - std::floor(distanceFromBeat);
+    }
+
+    value += distanceFromBeat * onsets[i];
+  }
+
+  return value;//tempoToBins(tempo, hopSize, sampleRate);
+}
+
 
 double Tempo::correlationTempo(std::vector<double> onsets, 
                                long hopSize, 
@@ -129,6 +150,84 @@ std::pair<double, double> Tempo::fineTuneTempo(double tempo,
        tempoAdjustment <=BPSrange; 
        tempoAdjustment += BPSstepSize) {
     double trialTempo = tempo + tempoAdjustment;
+    // adjust it by size of beats to bins -> less bins -> easier
+    double thisMinValue = onsets.size();
+    double thisMinTempo = 0;
+    for (double theOne = 0; 
+         theOne < tempoToBins(trialTempo, hopSize, sampleRate); 
+         theOne ++) {
+      double newTempoValue = tempoValue(trialTempo, theOne, onsets, hopSize, sampleRate, true);
+      if (newTempoValue < minTempoValue) {
+        minTempoValue = newTempoValue;
+        minTempo = trialTempo;
+      }
+
+      if (newTempoValue < thisMinValue) {
+        thisMinValue = newTempoValue;
+        thisMinTempo = trialTempo;
+      }
+    }
+    tempoValues.push_back(thisMinValue);
+  }
+
+  // then search for the start of the beat
+  minTempoValue = onsets.size();
+  std::vector<double> minValues;
+  double minOne = 0;
+  for (double theOne = 0; 
+       theOne < tempoToBins(minTempo, hopSize, sampleRate)+1; 
+       theOne ++) {
+    double newTempoValue = tempoValue(minTempo, theOne, onsets, hopSize, sampleRate, false);
+    if (newTempoValue < minTempoValue) {
+      minTempoValue = newTempoValue;
+      minOne = theOne;
+    }
+    minValues.push_back(newTempoValue);
+  }
+
+  return std::make_pair(minTempo, binsToSeconds(minOne, hopSize, sampleRate));
+}
+
+std::vector<double> Tempo::fineTuneTempoFunction(
+    double tempo, 
+    size_t degrees,
+    std::vector<double> onsets, 
+    double errorPercentage,
+    double stepPercentage,
+    long hopSize,
+    long sampleRate) {
+
+  std::vector<double> function(degrees);
+  double minTempoValue = onsets.size();
+
+  // first find 0 degree. 
+  for (double tempoAdjustment = BPSPercentage * tempo; 
+       tempoAdjustment <=BPSrange; 
+       tempoAdjustment += BPSstepSize) {
+    double trialTempo = tempo + tempoAdjustment;
+    for (double theOne = 0; 
+         theOne < tempoToBins(trialTempo, hopSize, sampleRate); 
+         theOne ++) {
+      double newTempoValue = tempoValue(trialTempo, theOne, onsets, hopSize, sampleRate, true);
+      if (newTempoValue < minTempoValue) {
+        minTempoValue = newTempoValue;
+        minTempo = trialTempo;
+      }
+    }
+  }
+
+  for (size_t degree = 1; degree < degrees; degree ++) {
+    // for all possible values
+    // for all possible values of the one
+    // find the newTempoValue
+  }
+
+  // first find the bidirectional minima
+  double minTempoValue = onsets.size();
+  double minTempo = tempo;
+  for (double tempoAdjustment = BPSPercentage * tempo; 
+       tempoAdjustment <=BPSrange; 
+       tempoAdjustment += BPSstepSize) {
     // adjust it by size of beats to bins -> less bins -> easier
     double thisMinValue = onsets.size();
     double thisMinTempo = 0;
