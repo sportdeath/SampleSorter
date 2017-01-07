@@ -110,11 +110,11 @@ void Octave::addPeak(double peakFreq, double peakValue, double baseOffset) {
     double rightAmp = rightPercent * peakValue;
     double leftAmp = leftPercent * peakValue;
 
-    if (std::isnan(rightAmp) or std::isnan(leftAmp) ) {
-      std::cout << "ahhhh" << std::endl;
-      std::cout << peakValue << std::endl;
-      std::cout << desiredBin << std::endl;
-    }
+    //if (std::isnan(rightAmp) or std::isnan(leftAmp) ) {
+      //std::cout << "ahhhh" << std::endl;
+      //std::cout << peakValue << std::endl;
+      //std::cout << desiredBin << std::endl;
+    //}
 
     spectrogram[leftBin] += leftAmp;
     spectrogram[rightBin] += rightAmp;

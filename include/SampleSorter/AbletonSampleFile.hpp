@@ -5,8 +5,6 @@
 
 #include <tinyxml2.h>
 
-#include <sndfile.hh>
-
 #include "SampleSorter/SampleFile.hpp"
 
 class AbletonSampleFile : public SampleFile {
@@ -17,23 +15,28 @@ class AbletonSampleFile : public SampleFile {
     double startSeconds;
     double endSeconds;
 
-    SndfileHandle audioFile;
-
     void getDoc();
-    void readDoc();
+    // returns true iff preprocessed
+    bool readDoc();
 
-    std::vector< std::vector<double> > getWaves();
-    long getSampleRate() const;
+    std::vector< std::vector<double> > extractAudio(long * sampleRate);
+
+    bool readMetaData();
 
   public:
     AbletonSampleFile(std::string filePath);
 
     AbletonSampleFile(const AbletonSampleFile & other);
 
+    tinyxml2::XMLElement * getAudioNode();
+    tinyxml2::XMLElement * getLoopNode();
+
     std::string getReferenceFilePath() const;
     std::string getReferenceFileName() const;
 
     double getSampleLength() const;
+
+    void writeToFile();
 };
 
 #endif

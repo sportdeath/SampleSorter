@@ -1,5 +1,8 @@
 # The Cmake build directory
 build/
+TestFiles/
+TestFilesBackup.zip
+python_src/
 
 # OS generated files #
 ######################

@@ -19,6 +19,8 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/modules/)
 set(PROJECT_INCLUDE_DIR "${PROJECT_SOURCE_DIR}/include")
 set(PROJECT_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src")
 set(PROJECT_SOURCES
+  ${PROJECT_SOURCE_DIR}/AudioFile.cpp
+
   ${PROJECT_SOURCE_DIR}/AbletonSampleFile.cpp
   ${PROJECT_SOURCE_DIR}/SampleFile.cpp
 
@@ -26,9 +28,11 @@ set(PROJECT_SOURCES
   ${PROJECT_SOURCE_DIR}/TimeDomainProcessing.cpp
   ${PROJECT_SOURCE_DIR}/SpectralProcessing.cpp
   ${PROJECT_SOURCE_DIR}/Octave.cpp
-  ${PROJECT_SOURCE_DIR}/Tempo.cpp
+  ${PROJECT_SOURCE_DIR}/TempoFunction.cpp
   ${PROJECT_SOURCE_DIR}/EqualLoudness.cpp
+
   ${PROJECT_SOURCE_DIR}/MusicTheory.cpp
+  ${PROJECT_SOURCE_DIR}/Units.cpp
 
   ${PROJECT_SOURCE_DIR}/PythonExternals.cpp
 
@@ -66,6 +70,27 @@ if(NOT LIBSNDFILE_FOUND)
   message(ERROR " LIBSNDFILE not found!")
 endif(NOT LIBSNDFILE_FOUND)
 
+# LibMad
+find_package(LIBMAD REQUIRED)
+include_directories(${LIBMAD_INCLUDE_DIR})
+set(LIBS ${LIBS} ${LIBMAD_LIBRARY})
+if(NOT LIBMAD_FOUND)
+  message(ERROR "LIBMAD not found!")
+endif(NOT LIBMAD_FOUND)
+
+# FFMPEG
+find_package(FFMPEG REQUIRED)
+include_directories(${FFMPEG_INCLUDE_DIR})
+set(LIBS 
+  ${LIBS} 
+  ${FFMPEG_LIBRARIES} 
+  #${FFMPEG_avformat_LIBRARY}
+  #${FFMPEG_avcodec_LIBRARY}
+)
+if(NOT FFMPEG_FOUND)
+  message(ERROR "FFMPEG not found!")
+endif(NOT FFMPEG_FOUND)
+
 # FFTW3
 find_package(FFTW REQUIRED)
 include_directories(${FFTW_INCLUDES})
@@ -73,7 +98,6 @@ set(LIBS ${LIBS} ${FFTW_LIBRARIES})
 if(NOT FFTW_FOUND)
   message(ERROR " FFTW not found!")
 endif(NOT FFTW_FOUND)
-
 
 ####################
 ## Library Creation
@@ -117,3 +141,5 @@ macro(MAKE_TEST test_name)
 endmacro()
 
 MAKE_TEST(basic_test)
+MAKE_TEST(MPEG_test)
+MAKE_TEST(tensorFlow_test)

@@ -9,8 +9,13 @@
 extern "C" {
   SampleFile * NewAbletonSampleFile(const char * filePath) {
     AbletonSampleFile * s = new AbletonSampleFile(filePath);
-    s -> process();
     return s;
+  }
+  bool process(SampleFile * s) {
+    return s -> process();
+  }
+  const char * getFileName(SampleFile * s) {
+    return s -> getFileName().c_str();
   }
   long getTuningCents(SampleFile * s) {
     return s -> getAudioSample() -> getTuningCents();
@@ -34,6 +39,9 @@ extern "C" {
       }
     }
     return chordsArray;
+  }
+  void writeToFile(AbletonSampleFile * s) {
+    s -> writeToFile();
   }
   void deleteChords(double ** chords, size_t chordsSize) {
     for (size_t i = 0; i < chordsSize; i++) {

@@ -11,10 +11,10 @@
 
 #include <tinyxml2.h>
 
-#include <sndfile.hh>
-
 #include "SampleSorter/SampleFile.hpp"
 #include "SampleSorter/AbletonSampleFile.hpp"
+#include "SampleSorter/ProcessingException.hpp"
+#include "SampleSorter/AudioFile.hpp"
 
 AbletonSampleFile::AbletonSampleFile(const AbletonSampleFile & other) 
   : SampleFile(other)
@@ -24,9 +24,13 @@ AbletonSampleFile::AbletonSampleFile(const AbletonSampleFile & other)
 
 AbletonSampleFile::AbletonSampleFile(std::string filePath) 
   : SampleFile(filePath) {
-    getDoc();
-    readDoc();
 }
+
+bool AbletonSampleFile::readMetaData() {
+  getDoc();
+  return readDoc();
+}
+
 
 std::string AbletonSampleFile::getReferenceFilePath() const {
   return referenceFilePath;
@@ -40,93 +44,210 @@ double AbletonSampleFile::getSampleLength() const {
   return endSeconds - startSeconds;
 }
 
-long AbletonSampleFile::getSampleRate() const {
-  return audioFile.samplerate();
-}
-
-std::vector< std::vector<double> > AbletonSampleFile::getWaves() {
-  // set seek to beginning
-  audioFile.seek(startSeconds * getSampleRate(), 0);
-  // number of frames to read
-  long size = (endSeconds - startSeconds) * getSampleRate();
-  std::vector<double> rawAudioData(size * audioFile.channels());
-  // read raw interleaved channels
-  audioFile.read(&rawAudioData[0], size * audioFile.channels());
-
-  // Allocate output vector
-  std::vector<std::vector<double> > waves(audioFile.channels());
-  for (int channel = 0; channel < audioFile.channels(); channel ++) {
-    waves[channel].resize(size);
-  }
-
-  // De-interleave channels
-  for (long i = 0; i < size * audioFile.channels(); i++) {
-    waves[i % audioFile.channels()][i/audioFile.channels()] = rawAudioData[i];
-  }
-
-  return waves;
+std::vector< std::vector<double> > AbletonSampleFile::extractAudio(long * sampleRate) {
+  return AudioFile::read(referenceFilePath, startSeconds, endSeconds, sampleRate);
 }
 
 void AbletonSampleFile::getDoc() {
-  // Ungzip
   std::stringstream unzipped;
-
-  std::ifstream zipped(filePath, 
-                       std::ios_base::in | std::ios_base::binary);
-  boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
-  in.push(boost::iostreams::gzip_decompressor());
-  in.push(zipped);
-  boost::iostreams::copy(in, unzipped);
+  try {
+    // Ungzip
+    std::ifstream zipped(filePath, 
+                         std::ios_base::in | std::ios_base::binary);
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> in;
+    in.push(boost::iostreams::gzip_decompressor());
+    in.push(zipped);
+    boost::iostreams::copy(in, unzipped);
+  } catch (boost::iostreams::gzip_error & e) {
+    throw ProcessingException("Could not ungzip Ableton file!");
+  }
 
   // convert from XML
   doc.Parse(&unzipped.str()[0]);
 }
 
-void AbletonSampleFile::readDoc() {
-  tinyxml2::XMLElement * audioNode = doc.RootElement()
-                                          -> FirstChildElement("LiveSet")
-                                          -> FirstChildElement("Tracks")
-                                          -> FirstChildElement("AudioTrack")
-                                          -> FirstChildElement("DeviceChain")
-                                          -> FirstChildElement("MainSequencer")
-                                          -> FirstChildElement("ClipSlotList")
-                                          -> FirstChildElement("ClipSlot")
-                                          -> FirstChildElement("ClipSlot")
-                                          -> FirstChildElement("Value")
-                                          -> FirstChildElement("AudioClip");
-  tinyxml2::XMLElement * loopNode = audioNode -> FirstChildElement("Loop");
+tinyxml2::XMLElement * AbletonSampleFile::getAudioNode() {
+  return doc.RootElement()
+          -> FirstChildElement("LiveSet")
+          -> FirstChildElement("Tracks")
+          -> FirstChildElement("AudioTrack")
+          -> FirstChildElement("DeviceChain")
+          -> FirstChildElement("MainSequencer")
+          -> FirstChildElement("ClipSlotList")
+          -> FirstChildElement("ClipSlot")
+          -> FirstChildElement("ClipSlot")
+          -> FirstChildElement("Value")
+          -> FirstChildElement("AudioClip");
+}
+
+tinyxml2::XMLElement * AbletonSampleFile::getLoopNode() {
+  return getAudioNode() -> FirstChildElement("Loop");
+}
+
+
+bool AbletonSampleFile::readDoc() {
 
   // Start and end times in seconds
-  startSeconds = loopNode -> FirstChildElement("LoopStart") 
+  startSeconds = getLoopNode() -> FirstChildElement("LoopStart") 
                                 -> DoubleAttribute("Value");
-  endSeconds = loopNode -> FirstChildElement("LoopEnd") 
+  endSeconds = getLoopNode() -> FirstChildElement("LoopEnd") 
                                 -> DoubleAttribute("Value");
 
-  tinyxml2::XMLElement * pathNode = audioNode -> FirstChildElement("SampleRef")
-                                              -> FirstChildElement("FileRef");
-  if (pathNode == nullptr) {
-    pathNode = audioNode -> FirstChildElement("SampleRef")
-                         -> FirstChildElement("SourceContext")
-                         -> FirstChildElement("SourceContext")
-                         -> FirstChildElement("OriginalFileRef")
-                         -> FirstChildElement("FileRef");
+  tinyxml2::XMLElement * pathNode;
+
+  pathNode = getAudioNode() -> FirstChildElement("SampleRef")
+                        -> FirstChildElement("SourceContext")
+                        -> FirstChildElement("SourceContext");
+
+  if (pathNode != nullptr) {
+    pathNode = pathNode -> FirstChildElement("BrowserContentPath");
+
+    referenceFilePath = pathNode -> Attribute("Value");
+    // remove "userlibrary:"
+    referenceFilePath.erase(0,11);
+
+    // replace "%20" with spaces
+    size_t replaceIndex = 0;
+    while (true) {
+      replaceIndex = referenceFilePath.find("%20", replaceIndex);
+      if (replaceIndex == std::string::npos) break;
+
+      referenceFilePath.replace(replaceIndex, 3, " ");
+      replaceIndex += 1;
+    }
+    replaceIndex = 0;
+
+    // remove the first #
+    replaceIndex = referenceFilePath.find("#", replaceIndex);
+    referenceFilePath.erase(replaceIndex, 1);
+
+    // replace the :s with /
+    replaceIndex = 0;
+    while (true) {
+      replaceIndex = referenceFilePath.find(":", replaceIndex);
+      if (replaceIndex == std::string::npos) break;
+
+      referenceFilePath.replace(replaceIndex, 1, "/");
+      replaceIndex += 1;
+    }
+  } else { 
+    pathNode = getAudioNode() -> FirstChildElement("SampleRef")
+                              -> FirstChildElement("FileRef");
+
+    tinyxml2::XMLElement * dirNode = pathNode -> FirstChildElement("SearchHint")
+                                      -> FirstChildElement("PathHint")
+                                      -> FirstChildElement("RelativePathElement");
+
+    // get file path
+    referenceFilePath = "/";
+    while (dirNode != nullptr) {
+      referenceFilePath += dirNode -> Attribute("Dir");
+      referenceFilePath += "/";
+      dirNode = dirNode -> NextSiblingElement("RelativePathElement");
+    }
+
+    // get file name
+    tinyxml2::XMLElement * nameNode = pathNode -> FirstChildElement("Name");
+    referenceFilePath += nameNode -> Attribute("Value");
   }
 
-  tinyxml2::XMLElement * dirNode = pathNode -> FirstChildElement("SearchHint")
-                                    -> FirstChildElement("PathHint")
-                                    -> FirstChildElement("RelativePathElement");
+  // Check for preprocessing
+  tinyxml2::XMLElement * sortData = doc.RootElement() 
+                        -> FirstChildElement("LiveSet")
+                        -> FirstChildElement("SampleSorter");
 
-  // get file path
-  referenceFilePath = "/";
-  while (dirNode != nullptr) {
-    referenceFilePath += dirNode -> Attribute("Dir");
-    referenceFilePath += "/";
-    dirNode = dirNode -> NextSiblingElement("RelativePathElement");
+  if (sortData != nullptr) {
+    long tuningCents = getAudioNode() -> FirstChildElement("PitchFine") 
+                                      -> IntAttribute("Value");
+    double rawBeat = sortData -> DoubleAttribute("RawBeat");
+    double theOne = sortData -> DoubleAttribute("TheOne");
+
+    std::vector<Octave> chords;
+
+    tinyxml2::XMLElement * chordElement = sortData -> FirstChildElement("Chord");
+    while (chordElement != nullptr) {
+      std::vector<double> spectrogram(12);
+      tinyxml2::XMLElement * noteElement = 
+        chordElement -> FirstChildElement("Note");
+      for (long i = 0; i < 12; i++) {
+        spectrogram[i] = noteElement -> DoubleAttribute("Value");
+        noteElement = noteElement -> NextSiblingElement("Note");
+      }
+      chordElement = chordElement -> NextSiblingElement("Chord");
+      Octave newChord(spectrogram);
+      chords.push_back(newChord);
+    }
+
+    sample = AudioSample(tuningCents, rawBeat, theOne, endSeconds - startSeconds, chords);
+
+    return true;
   }
 
-  // get file name
-  tinyxml2::XMLElement * nameNode = pathNode -> FirstChildElement("Name");
-  referenceFilePath += nameNode -> Attribute("Value");
+  return false;
+}
 
-  audioFile = SndfileHandle(referenceFilePath);
+void AbletonSampleFile::writeToFile() {
+
+  tinyxml2::XMLElement * sortData;
+
+  sortData = doc.RootElement() -> FirstChildElement("LiveSet")
+                               -> FirstChildElement("SampleSorter");
+
+  doc.RootElement() -> FirstChildElement("LiveSet")
+                    -> DeleteChild(sortData);
+
+  sortData = doc.NewElement("SampleSorter");
+
+  sortData -> SetAttribute("ReferenceFilePath", referenceFilePath.c_str());
+
+  sortData -> SetAttribute("RawBeat", getAudioSample() -> getBeatRaw());
+
+  getLoopNode() -> FirstChildElement("HiddenLoopStart") 
+    -> SetAttribute("Value", startSeconds);
+
+  getLoopNode() -> FirstChildElement("HiddenLoopEnd") 
+    -> SetAttribute("Value", endSeconds);
+
+  getAudioNode() -> FirstChildElement("Name") -> DeleteAttribute("Name");
+  getAudioNode() -> FirstChildElement("Name")
+    -> SetAttribute("Value", (getFileName() + " @" 
+        + std::to_string(60. * (getAudioSample() -> getBeatWithTuning()))).c_str());
+
+  sortData -> SetAttribute("TheOne", getAudioSample() -> getTheOneRaw());
+
+  int tuningCents = getAudioSample() -> getTuningCents();
+  getAudioNode() -> FirstChildElement("PitchFine")
+                 -> SetAttribute("Value", tuningCents);
+
+  std::vector<Octave> chords = getAudioSample() -> getChords();
+  for (long i = 0; i < chords.size(); i++) {
+    tinyxml2::XMLElement * chordElement = doc.NewElement("Chord");
+    for (short j = 0; j < 12; j++) {
+      tinyxml2::XMLElement * noteElement = doc.NewElement("Note");
+      noteElement -> SetAttribute("Value", chords[i].getSpectrogram()[j]);
+      chordElement -> InsertEndChild(noteElement);
+    }
+    sortData -> InsertEndChild(chordElement);
+  }
+
+  doc.RootElement() -> FirstChildElement("LiveSet") -> InsertEndChild(sortData); 
+
+  // make a string
+  tinyxml2::XMLPrinter printer;
+  doc.Accept( &printer);
+
+  // gzip
+  try {
+    std::stringstream unzipped;
+    unzipped << printer.CStr();
+
+    std::ofstream zipped(filePath, 
+                         std::ios_base::out | std::ios_base::binary);
+    boost::iostreams::filtering_streambuf<boost::iostreams::input> filter;
+    filter.push(boost::iostreams::gzip_compressor());
+    filter.push(unzipped);
+    boost::iostreams::copy(filter, zipped);
+  } catch (boost::iostreams::gzip_error & e) {
+    throw ProcessingException("Could not gzip Ableton file!");
+  }
 }

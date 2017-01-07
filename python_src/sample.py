@@ -9,6 +9,16 @@ class Sample:
         lib.NewAbletonSampleFile.restype = ctypes.c_void_p
         self.s = lib.NewAbletonSampleFile(str(fileName).encode('ascii'))
 
+    def getFileName(self):
+        lib.getFileName.argtypes = [ctypes.c_void_p]
+        lib.getFileName.restype = ctypes.c_char_p
+        return lib.getFileName(self.s)
+        
+    def process(self):
+        lib.process.argtypes = [ctypes.c_void_p]
+        lib.process.restype = ctypes.c_bool
+        return lib.process(self.s)
+
     def getTuning(self):
         lib.getTuningCents.argtypes = [ctypes.c_void_p]
         lib.getTuningCents.restype = ctypes.c_long
@@ -42,6 +52,10 @@ class Sample:
 
         # return
         return chords
+
+    def writeToFile(self):
+        lib.writeToFile.argtypes = [ctypes.c_void_p]
+        lib.writeToFile(self.s)
 
     def delete(self):
         lib.deleteAbletonSampleFile.argtypes = [ctypes.c_void_p]

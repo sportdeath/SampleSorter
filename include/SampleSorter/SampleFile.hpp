@@ -7,15 +7,14 @@
 
 class SampleFile {
   private:
-    AudioSample sample;
-
-    virtual std::vector< std::vector<double> > getWaves() = 0;
-    virtual long getSampleRate() const = 0;
+    virtual std::vector< std::vector<double> > extractAudio(long * sampleRate) = 0;
+    virtual bool readMetaData() = 0;
   protected:
     std::string filePath;
+    AudioSample sample;
   public:
     SampleFile(std::string filePath_);
-    void process();
+    bool process();
 
     std::string getFilePath();
     std::string getFileName();
@@ -23,14 +22,5 @@ class SampleFile {
     virtual double getSampleLength() const = 0;
     AudioSample * getAudioSample();
 };
-
-//extern "C" {
-  //SampleFile * SampleFile(char * fileName) {
-    //return new SampleFile(fileName);
-  //}
-  //double getTempo(SampleFile * s) {
-    //return s -> getAudioSample -> getTempo();
-  //}
-//}
 
 #endif
