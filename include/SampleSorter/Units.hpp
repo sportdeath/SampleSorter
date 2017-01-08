@@ -13,6 +13,8 @@ class Units {
 
     static double secondsToSamples(double seconds, long sampleRate);
 
+    static double secondsToTempo(double seconds);
+
     static double samplesToSeconds(double samples, long sampleRate);
 
     static double tempoToBins(double tempo, long hopSize, long sampleRate);
@@ -20,6 +22,8 @@ class Units {
     static double binsToSamples(double bin, long hopSize);
 
     static double binsToSeconds(double bin, long hopSize, long sampleRate);
+
+    static double binsToTempo(double bin, long hopSize, long sampleRate);
 
     static double samplesToBins(double samples, long hopSize);
 

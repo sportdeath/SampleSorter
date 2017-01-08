@@ -15,6 +15,10 @@ double Units::secondsToSamples(double seconds, long sampleRate) {
   return seconds * sampleRate;
 }
 
+double Units::secondsToTempo(double seconds) {
+  return 1/seconds;
+}
+
 double Units::samplesToSeconds(double samples, long sampleRate) {
   return samples/double(sampleRate);
 }
@@ -29,6 +33,10 @@ double Units::binsToSamples(double bin, long hopSize) {
 
 double Units::binsToSeconds(double bin, long hopSize, long sampleRate) {
   return samplesToSeconds(binsToSamples(bin, hopSize), sampleRate);
+}
+
+double Units::binsToTempo(double bin, long hopSize, long sampleRate) {
+  return secondsToTempo(binsToSeconds(bin, hopSize, sampleRate));
 }
 
 double Units::samplesToBins(double samples, long hopSize) {
