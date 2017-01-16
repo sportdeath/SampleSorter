@@ -28,7 +28,7 @@ set(PROJECT_SOURCES
   ${PROJECT_SOURCE_DIR}/TimeDomainProcessing.cpp
   ${PROJECT_SOURCE_DIR}/SpectralProcessing.cpp
   ${PROJECT_SOURCE_DIR}/Octave.cpp
-  ${PROJECT_SOURCE_DIR}/TempoFunction.cpp
+  ${PROJECT_SOURCE_DIR}/Tempo.cpp
   ${PROJECT_SOURCE_DIR}/EqualLoudness.cpp
 
   ${PROJECT_SOURCE_DIR}/MusicTheory.cpp

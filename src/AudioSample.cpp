@@ -9,37 +9,42 @@
 #include "SampleSorter/EqualLoudness.hpp"
 #include "SampleSorter/Octave.hpp"
 #include "SampleSorter/Units.hpp"
-#include "SampleSorter/TempoFunction.hpp"
+#include "SampleSorter/Tempo.hpp"
 
 AudioSample::AudioSample() {
   tuningCents = 0;
 }
 
 AudioSample::AudioSample(
-    std::vector<std::vector<double> > & audio, 
-    long sampleRate) {
-
-  tune(audio, sampleRate);
-  findBeat(audio, sampleRate);
-  findChords(audio, sampleRate);
+    std::vector<std::vector<double> > & audio,
+    long _sampleRate
+    ) : sampleRate(_sampleRate) {
+  totalSeconds = Units::samplesToSeconds(audio[0].size(), sampleRate);
+  tune(audio);
+  findBeat(audio);
+  findChords(audio);
 }
 
 double AudioSample::getTotalSeconds() const {
-  return tempo.getTotalSeconds();
+  return totalSeconds;
 }
 
 AudioSample::AudioSample(
     long tuningCents_,
     double rawBeat,
-    double theOne,
-    double totalSeconds,
-    std::vector<Octave> chords_) {
+    double theOneBin,
+    double totalSeconds_,
+    long sampleRate,
+    std::vector<Octave> chords_) :
+  tempo(rawBeat, theOneBin, sampleRate),
+  sampleRate(sampleRate)
+{
+  totalSeconds = totalSeconds_;
   tuningCents = tuningCents_;
-  tempo = TempoFunction(rawBeat, theOne, totalSeconds);
   chords = chords_;
 }
 
-void AudioSample::tune(std::vector<std::vector<double> > & audio, long sampleRate) {
+void AudioSample::tune(std::vector<std::vector<double> > & audio) {
   std::vector<std::vector<double> > filteredAudio;
   EqualLoudness::filter(filteredAudio, audio, sampleRate);
 
@@ -47,39 +52,45 @@ void AudioSample::tune(std::vector<std::vector<double> > & audio, long sampleRat
   tuningCents = oct.tune();
 }
 
-void AudioSample::findBeat(std::vector<std::vector<double> > & audio, long sampleRate) {
+void AudioSample::findBeat(std::vector<std::vector<double> > & audio) {
   double percentageError = 0.5; // 10%
-  double percentageStep = 0.0001; // 0.1%
+  double tempoSteps = 1000;
+  double oneSteps = 1000;
 
-  // tempo drift has resolution up to 4 seconds
-  size_t degrees = Units::samplesToSeconds(audio[0].size(), sampleRate)/4.;
-
-  tempo = TempoFunction(audio, 
-                        sampleRate, 
-                        degrees, 
-                        percentageError, 
-                        percentageStep);
+  tempo = Tempo(
+      audio, 
+      sampleRate, 
+      percentageError, 
+      tempoSteps,
+      oneSteps
+      );
 }
 
-void AudioSample::findChords(std::vector<std::vector<double> > & audio, long sampleRate) {
+void AudioSample::findChords(std::vector<std::vector<double> > & audio) {
   // filter the audio
   std::vector<std::vector<double> > filteredAudio;
   EqualLoudness::filter(filteredAudio, audio, sampleRate);
   TimeDomainProcessing::unitEnergyPerBeat(
-      filteredAudio, filteredAudio, tempo.getAvgTempo(), sampleRate);
+      filteredAudio, filteredAudio, tempo.getTempo(), sampleRate);
 
-  long k = 0;
-  double startBeat = 0;
-  double endBeat = std::min(tempo.getTotalSeconds(), tempo.getKthBeat(k));
+  int windowSize = Units::tempoToSamples(tempo.getTempo(), sampleRate);
+  long startSample = Units::secondsToSamples(tempo.getTheOne(), sampleRate);
 
-  chords.resize(0);
+  //long k = 0;
+  //double startBeat = 0;
+  //double endBeat = std::min(tempo.getTotalSeconds(), tempo.getKthBeat(k));
+  
+  int numChords = 
+    (Units::secondsToSamples(totalSeconds, sampleRate) - startSample)/windowSize;
 
-  do {
-    // set up window
-    long startSample = Units::secondsToSamples(startBeat, sampleRate);
-    long endSample = Units::secondsToSamples(endBeat, sampleRate);
-    long windowSize = endSample - startSample;
-    if (windowSize > 0 and startSample >= 0) {
+  chords.resize(numChords);
+
+  //do {
+    //// set up window
+    //long startSample = Units::secondsToSamples(startBeat, sampleRate);
+    //long endSample = Units::secondsToSamples(endBeat, sampleRate);
+    //long windowSize = endSample - startSample;
+    //if (windowSize > 0 and startSample >= 0) {
       std::vector<double> window(windowSize);
 
       // set up fft
@@ -90,6 +101,8 @@ void AudioSample::findChords(std::vector<std::vector<double> > & audio, long sam
                                                window.data(),
                                                fft,
                                                FFTW_ESTIMATE);
+
+      for (int i = 0; i < numChords; i++) {
 
       Octave chord;
 
@@ -112,17 +125,20 @@ void AudioSample::findChords(std::vector<std::vector<double> > & audio, long sam
         chord.add(chord, channelChord);
       }
 
-      fftw_free(fft);
-      fftw_destroy_plan(fftPlan);
 
       // add to chords
-      chords.push_back(chord);
-    }
+      chords[i] = chord;
+      }
 
-    k += 1;
-    startBeat = endBeat;
-    endBeat = std::min(tempo.getTotalSeconds(), tempo.getKthBeat(k));
-  } while (startBeat != tempo.getTotalSeconds());
+
+      fftw_free(fft);
+      fftw_destroy_plan(fftPlan);
+    //}
+
+    //k += 1;
+    //startBeat = endBeat;
+    //endBeat = std::min(totalSeconds, tempo.getKthBeat(k));
+  //} while (startBeat != tempo.getTotalSeconds());
 }
 
 long AudioSample::getTuningCents() const {
@@ -132,10 +148,10 @@ double AudioSample::getTuningCentsFreqRatio() const {
   return std::pow(2., tuningCents/1200.);
 }
 double AudioSample::getBeatRaw() const {
-  return tempo.getAvgTempo();
+  return tempo.getTempo();
 }
 double AudioSample::getBeatWithTuning() const {
-  return tempo.getAvgTempo() * getTuningCentsFreqRatio();
+  return tempo.getTempo() * getTuningCentsFreqRatio();
 }
 double AudioSample::getTheOneRaw() const {
   return tempo.getTheOne();
@@ -145,4 +161,7 @@ double AudioSample::getTheOneWithTuning() const {
 }
 std::vector<Octave> AudioSample::getChords() const {
   return chords;
+}
+long AudioSample::getSampleRate() const {
+  return sampleRate;
 }

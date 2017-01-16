@@ -4,25 +4,28 @@
 #include <vector>
 
 #include "SampleSorter/Octave.hpp"
-#include "SampleSorter/TempoFunction.hpp"
+#include "SampleSorter/Tempo.hpp"
 
 class AudioSample {
   private:
     long tuningCents;
-    TempoFunction tempo;
+    Tempo tempo;
     std::vector<Octave> chords;
+    double totalSeconds;
+    long sampleRate;
 
-    void tune(std::vector<std::vector<double> > & audio, long sampleRate);
-    void findBeat(std::vector<std::vector<double> > & audio, long sampleRate);
-    void findChords(std::vector<std::vector<double> > & audio, long sampleRate);
+    void tune(std::vector<std::vector<double> > & audio);
+    void findBeat(std::vector<std::vector<double> > & audio);
+    void findChords(std::vector<std::vector<double> > & audio);
   public:
     AudioSample();
     AudioSample(long tuningCents_,
                 double rawBeat,
                 double theOne,
                 double totalSeconds,
+                long sampleRate,
                 std::vector<Octave> chords);
-    AudioSample(std::vector<std::vector<double> > & audio, long sampleRate);
+    AudioSample(std::vector<std::vector<double> > & audio, long _sampleRate);
 
     double getTotalSeconds() const;
     long getTuningCents() const;
@@ -32,6 +35,7 @@ class AudioSample {
     double getTheOneRaw() const;
     double getTheOneWithTuning() const;
     std::vector<Octave> getChords() const;
+    long getSampleRate() const;
 };
 
 #endif

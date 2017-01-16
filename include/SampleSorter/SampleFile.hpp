@@ -19,7 +19,7 @@ class SampleFile {
     std::string getFilePath();
     std::string getFileName();
 
-    virtual double getSampleLength() const = 0;
+    virtual double getSampleSeconds() const = 0;
     AudioSample * getAudioSample();
 };
 

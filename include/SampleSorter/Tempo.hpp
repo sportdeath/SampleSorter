@@ -17,6 +17,9 @@ class Tempo {
      * sample measured in bins
      */
     double theOneBin;
+
+    static const long HOP_SIZE;
+    long sampleRate;
   public:
     /**
      * The tempo.
@@ -31,10 +34,10 @@ class Tempo {
      * Returns the starting beat
      * in seconds
      */
-    double getTheOne(long hopSize, long sampleRate) const;
+    double getTheOne() const;
 
     Tempo();
-    Tempo(double tempo_, double theOneBin_);
+    Tempo(double tempo_, double theOneBin_, long sampleRate);
 
     /**
      * Takes an audio file
@@ -46,7 +49,7 @@ class Tempo {
         long sampleRate,
         double percentageError,
         int tempoSteps,
-        int oneSteps,
+        int oneSteps
         );
 
     /**
@@ -60,9 +63,8 @@ class Tempo {
     void fineTuneTempo(
         const double percentageError,
         const int steps,
-        const std::vector<double> & onsets,
-        const long hopSize,
-        const long sampleRate);
+        const std::vector<double> & onsets
+        );
 
     /**
      * Fine tunes the one so that most of the energy
@@ -70,9 +72,7 @@ class Tempo {
      */
     void fineTuneTheOne(
         const std::vector<double> & onsets,
-        const int steps,
-        const long hopSize,
-        const long sampleRate
+        const int steps
         );
 
 
@@ -88,22 +88,18 @@ class Tempo {
 
     double getValue(
         const std::vector<double> & onsets,
-        bool bidirectional,
-        long hopSize,
-        long sampleRate
+        bool bidirectional
         ) const;
 
     void findCorrelationTempo(
-        const std::vector<double> & onsets,
-        long hopSize,
-        long sampleRate);
+        const std::vector<double> & onsets
+        );
 
     void plotBeats(double resolution) const;
     void plotTempo(double resolution) const;
     void plotOnsetsWithBeats(
-        const std::vector<double> & onsets,
-        long hopSize,
-        long sampleRate) const;
+        const std::vector<double> & onsets
+        ) const;
     
 };
 
