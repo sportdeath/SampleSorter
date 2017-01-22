@@ -110,8 +110,8 @@ def makeBatch(batchSize, files, pairs):
 
 
 def main():
-    library = "/Users/tfh/Dropbox (MIT)/UserLibrary/SampleLibrary/Chops/"
-    #library = "/Users/tfh/Dropbox (MIT)/SampleSorter/TestFiles/"
+    #library = "/Users/tfh/Dropbox (MIT)/UserLibrary/SampleLibrary/Chops/"
+    library = "/Users/tfh/Dropbox (MIT)/SampleSorter/TestFiles/"
 
     processedFiles = processFiles(library)
 

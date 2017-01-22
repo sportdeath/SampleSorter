@@ -139,13 +139,20 @@ Tempo::Tempo(
   std::cout << audio.size() << ", " << audio[0].size() << std::endl;
   std::cout << sampleRate << std::endl;
 
+  std::cout << "Plotting audio..." << std::endl;
+  Plotting::plotVector(audio[0], 1., 0);
+
   //std::cout << "starting tempo" << std::endl;
 
   long windowRatio = 2;
   std::vector<double> onsets =
     SpectralProcessing::onsetEnergy(audio, HOP_SIZE, windowRatio);
 
+  std::cout << "Plotting onsets..." << std::endl;
+  Plotting::plotVector(onsets, 1., 0);
+
   findCorrelationTempo(onsets);
+
 
   std::cout << "guessed tempo: " << getTempo() * 60. << std::endl;
 
@@ -223,6 +230,7 @@ void Tempo::findCorrelationTempo(
   std::vector<std::pair<double, double> > peaks = 
     SpectralProcessing::findPeaks(fft, fftSize, sampleRate/HOP_SIZE);
 
+  std::cout << "about to plot some pairs?" << std::endl;
   Plotting::plotPair(peaks);
 
   fftw_free(fft);

@@ -216,7 +216,8 @@ bool AbletonSampleFile::readDoc() {
   endSeconds = getLoopEndNode() -> DoubleAttribute("Value");
 
   // if this has already been processed
-  if (getSortDataNode() != nullptr) {
+  //if (getSortDataNode() != nullptr) {
+  if (false) {
     // Path
     referenceFilePath = getSortDataNode() -> Attribute("ReferenceFilePath");
     // Tuning
