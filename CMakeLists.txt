@@ -31,7 +31,6 @@ set(PROJECT_SOURCES
   ${PROJECT_SOURCE_DIR}/Tempo.cpp
   ${PROJECT_SOURCE_DIR}/EqualLoudness.cpp
 
-  ${PROJECT_SOURCE_DIR}/MusicTheory.cpp
   ${PROJECT_SOURCE_DIR}/Units.cpp
 
   ${PROJECT_SOURCE_DIR}/PythonExternals.cpp
@@ -61,22 +60,6 @@ set(LIBS ${LIBS} ${TINYXML2_LIBRARIES})
 if(NOT TINYXML2_FOUND)
   message(ERROR " TinyXML2 not found!")
 endif(NOT TINYXML2_FOUND)
-
-# LibSndFile
-find_package(LIBSNDFILE REQUIRED)
-include_directories(${LIBSNDFILE_INCLUDE_DIR})
-set(LIBS ${LIBS} ${LIBSNDFILE_LIBRARY})
-if(NOT LIBSNDFILE_FOUND)
-  message(ERROR " LIBSNDFILE not found!")
-endif(NOT LIBSNDFILE_FOUND)
-
-# LibMad
-find_package(LIBMAD REQUIRED)
-include_directories(${LIBMAD_INCLUDE_DIR})
-set(LIBS ${LIBS} ${LIBMAD_LIBRARY})
-if(NOT LIBMAD_FOUND)
-  message(ERROR "LIBMAD not found!")
-endif(NOT LIBMAD_FOUND)
 
 # FFMPEG
 find_package(FFMPEG REQUIRED)

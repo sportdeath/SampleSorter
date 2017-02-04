@@ -28,7 +28,6 @@ std::vector<std::vector<double> > AudioFile::read(
   // Initialize FFmpeg
   av_register_all();
 
-
   // open file and get format information
   AVFormatContext * formatContext = NULL;
   if (avformat_open_input(&formatContext, fileName.c_str(), NULL, 0) != 0) {
@@ -40,7 +39,6 @@ std::vector<std::vector<double> > AudioFile::read(
     avformat_close_input(&formatContext);
     throw ProcessingException("Could not get stream info!");
   }
-
 
   // Find an audio stream
   // And its decoder

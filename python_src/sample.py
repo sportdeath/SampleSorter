@@ -13,10 +13,10 @@ class Sample:
         lib.getFileName.restype = ctypes.c_char_p
         return lib.getFileName(self.s)
         
-    def process(self):
-        lib.process.argtypes = [ctypes.c_void_p]
+    def process(self, forceReprocess):
+        lib.process.argtypes = [ctypes.c_void_p, ctypes.c_bool]
         lib.process.restype = ctypes.c_bool
-        return lib.process(self.s)
+        return lib.process(self.s, forceReprocess)
 
     def getTuning(self):
         lib.getTuningCents.argtypes = [ctypes.c_void_p]

@@ -29,8 +29,7 @@ AbletonSampleFile::AbletonSampleFile(
     std::string userLibrary) 
   : SampleFile(filePath),
     userLibrary(userLibrary)
-{
-}
+{}
 
 bool AbletonSampleFile::readMetaData() {
   getDoc();
@@ -186,8 +185,7 @@ bool AbletonSampleFile::readDoc() {
   endSeconds = getLoopEndNode() -> DoubleAttribute("Value");
 
   // if this has already been processed
-  //if (getSortDataNode() != nullptr) {
-  if (false) {
+  if (getSortDataNode() != nullptr) {
     // Path
     referenceFilePath = getSortDataNode() -> Attribute("ReferenceFilePath");
 
@@ -236,17 +234,14 @@ bool AbletonSampleFile::readDoc() {
 }
 
 void AbletonSampleFile::writeToFile() {
-  std::cout << "here :) " << std::endl;
-  // Delete old data to write new
-  std::cout << "going beetch" << std::endl;
+  // Delete old data if it exists
   tinyxml2::XMLElement * sortData = getSortDataNode();
   if (sortData != NULL) {
     doc.RootElement() -> FirstChildElement("LiveSet")
                       -> DeleteChild(sortData);
   }
+  // Make a new node
   sortData = doc.NewElement("SampleSorter");
-
-  std::cout << "whatt" << std::endl;
 
   // Path
   sortData -> SetAttribute("ReferenceFilePath", referenceFilePath.c_str());
@@ -258,8 +253,11 @@ void AbletonSampleFile::writeToFile() {
   sortData -> SetAttribute("SampleRate", int(getAudioSample() -> getSampleRate()));
 
   // Loop ends
-  getHiddenLoopStartNode() -> SetAttribute("Value", startSeconds);
-  getHiddenLoopEndNode() -> SetAttribute("Value", endSeconds);
+  // set the loop start to be the first beat
+  double firstBeatSeconds = startSeconds + getAudioSample() -> getTheOneRaw();
+  double lastBeatSeconds = startSeconds + getAudioSample() -> getLastBeatSeconds();
+  getHiddenLoopStartNode() -> SetAttribute("Value", firstBeatSeconds);
+  getHiddenLoopEndNode() -> SetAttribute("Value", lastBeatSeconds);
 
   // Tuning
   getPitchFineNode() 

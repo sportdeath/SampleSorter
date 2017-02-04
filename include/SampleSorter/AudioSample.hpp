@@ -17,6 +17,10 @@ class AudioSample {
     void tune(std::vector<std::vector<double> > & audio);
     void findBeat(std::vector<std::vector<double> > & audio);
     void findChords(std::vector<std::vector<double> > & audio);
+
+    static const double TEMPO_PERCENTAGE_ERROR;
+    static const double TEMPO_STEPS;
+    static const double TEMPO_ONE_STEPS;
   public:
     AudioSample();
     AudioSample(long tuningCents_,
@@ -36,6 +40,7 @@ class AudioSample {
     double getTheOneWithTuning() const;
     std::vector<Octave> getChords() const;
     long getSampleRate() const;
+    double getLastBeatSeconds() const;
 };
 
 #endif

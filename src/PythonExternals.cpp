@@ -11,8 +11,8 @@ extern "C" {
     AbletonSampleFile * s = new AbletonSampleFile(filePath, userLibrary);
     return s;
   }
-  bool process(SampleFile * s) {
-    return s -> process();
+  bool process(SampleFile * s, bool forceReprocess) {
+    return s -> process(forceReprocess);
   }
   const char * getFileName(SampleFile * s) {
     return s -> getFileName().c_str();

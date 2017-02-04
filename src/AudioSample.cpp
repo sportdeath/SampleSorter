@@ -11,6 +11,11 @@
 #include "SampleSorter/Units.hpp"
 #include "SampleSorter/Tempo.hpp"
 
+// 20% error max
+const double AudioSample::TEMPO_PERCENTAGE_ERROR = 0.2;
+const double AudioSample::TEMPO_STEPS = 2000;
+const double AudioSample::TEMPO_ONE_STEPS = 1000;
+
 AudioSample::AudioSample() {
   tuningCents = 0;
 }
@@ -53,16 +58,12 @@ void AudioSample::tune(std::vector<std::vector<double> > & audio) {
 }
 
 void AudioSample::findBeat(std::vector<std::vector<double> > & audio) {
-  double percentageError = 0.2; // 10%
-  double tempoSteps = 1000;
-  double oneSteps = 1000;
-
   tempo = Tempo(
       audio, 
       sampleRate, 
-      percentageError, 
-      tempoSteps,
-      oneSteps
+      TEMPO_PERCENTAGE_ERROR,
+      TEMPO_STEPS,
+      TEMPO_ONE_STEPS
       );
 }
 
@@ -76,69 +77,49 @@ void AudioSample::findChords(std::vector<std::vector<double> > & audio) {
   int windowSize = Units::tempoToSamples(tempo.getTempo(), sampleRate);
   long startSample = Units::secondsToSamples(tempo.getTheOne(), sampleRate);
 
-  //long k = 0;
-  //double startBeat = 0;
-  //double endBeat = std::min(tempo.getTotalSeconds(), tempo.getKthBeat(k));
-  
   int numChords = 
     (Units::secondsToSamples(totalSeconds, sampleRate) - startSample)/windowSize;
 
   chords.resize(numChords);
 
-  //do {
-    //// set up window
-    //long startSample = Units::secondsToSamples(startBeat, sampleRate);
-    //long endSample = Units::secondsToSamples(endBeat, sampleRate);
-    //long windowSize = endSample - startSample;
-    //if (windowSize > 0 and startSample >= 0) {
-      std::vector<double> window(windowSize);
+  std::vector<double> window(windowSize);
 
-      // set up fft
-      long fftSize = windowSize/2 + 1;
-      fftw_complex * fft;
-      fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
-      fftw_plan fftPlan = fftw_plan_dft_r2c_1d(windowSize,
-                                               window.data(),
-                                               fft,
-                                               FFTW_ESTIMATE);
+  // set up fft
+  long fftSize = windowSize/2 + 1;
+  fftw_complex * fft;
+  fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
+  fftw_plan fftPlan = fftw_plan_dft_r2c_1d(windowSize,
+                                           window.data(),
+                                           fft,
+                                           FFTW_ESTIMATE);
 
-      for (int i = 0; i < numChords; i++) {
+  for (int i = 0; i < numChords; i++) {
 
-      Octave chord;
+    Octave chord;
 
-      // for each channel
-      for (long channel = 0; channel < filteredAudio.size(); channel ++) {
-        // window this section
-        //std::cout << "before" << std::endl;
-        for (long i = 0; i < windowSize; i++) {
-          window[i] = filteredAudio[channel][i + startSample];
-          window[i] = window[i] * SpectralProcessing::hammingWindow(i, windowSize);
-        }
-        //std::cout << "after" << std::endl;
-
-        // take fourier transform of this section
-        fftw_execute(fftPlan);
-        // turn it into a chord
-        Octave channelChord(fft, fftSize, 12, sampleRate, tuningCents);
-
-        // add to channel
-        chord.add(chord, channelChord);
+    // for each channel
+    for (long channel = 0; channel < filteredAudio.size(); channel ++) {
+      // window this section
+      for (long i = 0; i < windowSize; i++) {
+        window[i] = filteredAudio[channel][i + startSample];
+        window[i] = window[i] * SpectralProcessing::hammingWindow(i, windowSize);
       }
 
+      // take fourier transform of this section
+      fftw_execute(fftPlan);
+      // turn it into a chord
+      Octave channelChord(fft, fftSize, 12, sampleRate, tuningCents);
 
-      // add to chords
-      chords[i] = chord;
-      }
+      // add to channel
+      chord.add(chord, channelChord);
+    }
 
+    // add to chords
+    chords[i] = chord;
+  }
 
-      fftw_free(fft);
-      fftw_destroy_plan(fftPlan);
-    //}
-
-    //k += 1;
-    //startBeat = endBeat;
-    //endBeat = std::min(totalSeconds, tempo.getKthBeat(k));
-  //} while (startBeat != tempo.getTotalSeconds());
+  fftw_free(fft);
+  fftw_destroy_plan(fftPlan);
 }
 
 long AudioSample::getTuningCents() const {
@@ -164,4 +145,9 @@ std::vector<Octave> AudioSample::getChords() const {
 }
 long AudioSample::getSampleRate() const {
   return sampleRate;
+}
+double AudioSample::getLastBeatSeconds() const {
+  int numBeats = 
+    std::floor((totalSeconds - getTheOneRaw()) * getBeatRaw());
+  return (numBeats / getBeatRaw()) + getTheOneRaw();
 }

@@ -33,24 +33,21 @@ from sample import Sample
 
 #tf.nn.bidirectional_rnn(fw_cell, bw_cell, x)
 
-def processFiles(library, userLibrary):
+def processFiles(library, userLibrary, forceReprocess):
     processedFiles = []
-    unProcessedFiles = []
     for root, directories, filenames in os.walk(library):
         for filename in filenames:
               if filename[-4:] == ".alc":
                   filePath = os.path.join(root, filename)
                   print "Starting", filePath
                   s = Sample(filePath, userLibrary)
-                  if s.process():
+                  if s.process(forceReprocess):
                       print "Processed:", s.getFileName()
                       print "Tuning:", s.getTuning()
                       print "Tempo:", s.getTempo() * 60.
                       print
                       s.writeToFile()
-                      print "Written"
                       s.delete()
-                      print "Delete"
                       processedFiles.append(filePath)
                   else:
                       print "Could not process ", filename
@@ -116,11 +113,12 @@ def makeBatch(batchSize, files, pairs):
 
 
 def main():
-    #library = "/Users/tfh/Dropbox (MIT)/UserLibrary/SampleLibrary/Chops/"
     library = "/home/tfh/FatDisk/Dropbox (MIT)/SampleSorter/TestFiles"
     userLibrary = "/home/tfh/FatDisk/Dropbox (MIT)/UserLibrary/"
 
-    processedFiles = processFiles(library, userLibrary)
+    forceReprocess = True
+
+    processedFiles = processFiles(library, userLibrary, forceReprocess)
 
     pairs = findPairs(processedFiles, -6, 3, 5)
 

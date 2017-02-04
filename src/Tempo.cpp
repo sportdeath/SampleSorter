@@ -10,6 +10,11 @@
 #include "Plotting/Plotting.hpp"
 
 const long Tempo::HOP_SIZE = 1024;
+const short Tempo::WINDOW_RATIO = 2;
+// no tempos less than 1 beat per second
+const double Tempo::HIGH_PASS = 1.;
+// no tempos greater than 1000bpm
+const double Tempo::LOW_PASS = 1000/60;
 
 Tempo::Tempo() : sampleRate(1) {
   tempo = 1;
@@ -90,7 +95,7 @@ void Tempo::fineTuneTheOne(
   for (theOneBin = 0;
       theOneBin < beatOneBins;
       theOneBin += beatOneBins/double(steps)) {
-    double value = getValue(onsets, false);
+    double value = getValue(onsets, true);
 
     if (value < minValue) {
       minValue = value;
@@ -163,18 +168,14 @@ void Tempo::findCorrelationTempo(
   // filter out frequencies less than 2 per clip
   // Clips with tempo must contain at least 2 beats
   double highPass = 2./Units::binsToSeconds(onsets.size(), HOP_SIZE, sampleRate);
-  // Also beat cannot be below 1/8 persecond
-  highPass = std::max(highPass, 1.);
-
-  // No tempos will exist above 1000bpm
-  double lowPass = 1000/60.;
+  highPass = std::max(highPass, HIGH_PASS);
 
   std::vector<double> correlation = 
     SpectralProcessing::autoCorrelation(
         onsets,
         sampleRate/HOP_SIZE,
         highPass,
-        lowPass);
+        LOW_PASS);
 
   // only take first half of correlation
   long fftSize = correlation.size()/4 + 1;

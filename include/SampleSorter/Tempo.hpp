@@ -19,6 +19,9 @@ class Tempo {
     double theOneBin;
 
     static const long HOP_SIZE;
+    static const short WINDOW_RATIO;
+    static const double HIGH_PASS;
+    static const double LOW_PASS;
     long sampleRate;
   public:
     /**
