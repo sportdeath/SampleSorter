@@ -33,21 +33,24 @@ from sample import Sample
 
 #tf.nn.bidirectional_rnn(fw_cell, bw_cell, x)
 
-def processFiles(library):
+def processFiles(library, userLibrary):
     processedFiles = []
     unProcessedFiles = []
     for root, directories, filenames in os.walk(library):
         for filename in filenames:
               if filename[-4:] == ".alc":
                   filePath = os.path.join(root, filename)
-                  s = Sample(filePath)
+                  print "Starting", filePath
+                  s = Sample(filePath, userLibrary)
                   if s.process():
                       print "Processed:", s.getFileName()
                       print "Tuning:", s.getTuning()
                       print "Tempo:", s.getTempo() * 60.
                       print
                       s.writeToFile()
+                      print "Written"
                       s.delete()
+                      print "Delete"
                       processedFiles.append(filePath)
                   else:
                       print "Could not process ", filename
@@ -63,7 +66,10 @@ def findPairs(files, semitonesLowerBound, semitonesUpperBound, tuningBound):
 
     pairs = {}
 
+    print "start here"
+
     for i in range(len(files)):
+        print "yoyoyo"
         s1 = Sample(files[i])
         s1.process()
         tempo1 = s1.getTempo()
@@ -111,9 +117,10 @@ def makeBatch(batchSize, files, pairs):
 
 def main():
     #library = "/Users/tfh/Dropbox (MIT)/UserLibrary/SampleLibrary/Chops/"
-    library = "/Users/tfh/Dropbox (MIT)/SampleSorter/TestFiles/"
+    library = "/home/tfh/FatDisk/Dropbox (MIT)/SampleSorter/TestFiles"
+    userLibrary = "/home/tfh/FatDisk/Dropbox (MIT)/UserLibrary/"
 
-    processedFiles = processFiles(library)
+    processedFiles = processFiles(library, userLibrary)
 
     pairs = findPairs(processedFiles, -6, 3, 5)
 

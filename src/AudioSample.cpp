@@ -53,7 +53,7 @@ void AudioSample::tune(std::vector<std::vector<double> > & audio) {
 }
 
 void AudioSample::findBeat(std::vector<std::vector<double> > & audio) {
-  double percentageError = 0.5; // 10%
+  double percentageError = 0.2; // 10%
   double tempoSteps = 1000;
   double oneSteps = 1000;
 

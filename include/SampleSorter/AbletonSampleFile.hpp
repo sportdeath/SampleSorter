@@ -20,6 +20,8 @@ class AbletonSampleFile : public SampleFile {
   private:
     tinyxml2::XMLDocument doc;
 
+    std::string userLibrary;
+
     std::string referenceFilePath;
     double startSeconds;
     double endSeconds;
@@ -61,7 +63,7 @@ class AbletonSampleFile : public SampleFile {
     std::string fetchReferenceFilePath();
 
   public:
-    AbletonSampleFile(std::string filePath);
+    AbletonSampleFile(std::string filePath, std::string userLibrary);
 
     AbletonSampleFile(const AbletonSampleFile & other);
 

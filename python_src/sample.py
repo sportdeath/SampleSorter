@@ -1,13 +1,12 @@
 import ctypes
 import math
-import midi
 
-lib = ctypes.CDLL("../build/libSampleSorter.dylib")
+lib = ctypes.CDLL("../build/libSampleSorter.so")
 
 class Sample:
-    def __init__(self, fileName):
+    def __init__(self, fileName, userLibrary):
         lib.NewAbletonSampleFile.restype = ctypes.c_void_p
-        self.s = lib.NewAbletonSampleFile(str(fileName).encode('ascii'))
+        self.s = lib.NewAbletonSampleFile(str(fileName).encode('ascii'), str(userLibrary).encode('ascii'))
 
     def getFileName(self):
         lib.getFileName.argtypes = [ctypes.c_void_p]
@@ -63,6 +62,7 @@ class Sample:
 
 
     def writeToMIDI(self, midiFileName):
+        import midi
         chords = self.getChords()
         # find the maximum amplitude
         maximumAmp = 0

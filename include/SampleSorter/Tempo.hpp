@@ -84,7 +84,7 @@ class Tempo {
      * If not bidirectional, the distance is
      * the distance from the previous beat.
      */
-    double distanceFromBeat(double bin, bool bidirectional, long hopSize, long sampleRate) const;
+    double distanceFromBeat(double bin, bool bidirectional, long sampleRate) const;
 
     double getValue(
         const std::vector<double> & onsets,

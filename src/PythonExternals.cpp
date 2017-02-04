@@ -7,8 +7,8 @@
 #include "Plotting/Plotting.hpp"
 
 extern "C" {
-  SampleFile * NewAbletonSampleFile(const char * filePath) {
-    AbletonSampleFile * s = new AbletonSampleFile(filePath);
+  SampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary) {
+    AbletonSampleFile * s = new AbletonSampleFile(filePath, userLibrary);
     return s;
   }
   bool process(SampleFile * s) {

@@ -20,7 +20,13 @@ class AudioFile {
         std::vector<std::vector<double> > & output,
         long startSample,
         long endSample,
-        long sampleOffset);
+        long * sampleOffset);
+
+    static double getSample(
+        const AVCodecContext * codecContext,
+        const AVFrame * frame,
+        int sample,
+        int channel);
 };
 
 #endif

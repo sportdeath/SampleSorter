@@ -21,11 +21,15 @@
 AbletonSampleFile::AbletonSampleFile(const AbletonSampleFile & other) 
   : SampleFile(other)
 {
-  AbletonSampleFile(other.filePath);
+  AbletonSampleFile(other.filePath, other.userLibrary);
 }
 
-AbletonSampleFile::AbletonSampleFile(std::string filePath) 
-  : SampleFile(filePath) {
+AbletonSampleFile::AbletonSampleFile(
+    std::string filePath,
+    std::string userLibrary) 
+  : SampleFile(filePath),
+    userLibrary(userLibrary)
+{
 }
 
 bool AbletonSampleFile::readMetaData() {
@@ -147,64 +151,30 @@ tinyxml2::XMLElement * AbletonSampleFile::getPitchFineNode() {
 
 std::string AbletonSampleFile::fetchReferenceFilePath() {
   // Some awful reverse engineering
-  std::string path;
+  
+  // Build the relative path
+  tinyxml2::XMLElement * pathNode = 
+    getAudioNode() -> FirstChildElement("SampleRef")
+    -> FirstChildElement("FileRef");
 
-  tinyxml2::XMLElement * pathNode = getAudioNode() 
-    -> FirstChildElement("SampleRef")
-    -> FirstChildElement("SourceContext")
-    -> FirstChildElement("SourceContext");
+  tinyxml2::XMLElement * dirNode = 
+    pathNode 
+    -> FirstChildElement("RelativePath")
+    -> FirstChildElement("RelativePathElement");
 
-  if (pathNode != nullptr) {
-    pathNode = pathNode -> FirstChildElement("BrowserContentPath");
-
-    path = pathNode -> Attribute("Value");
-    // remove "userlibrary:"
-    path.erase(0,11);
-
-    // replace "%20" with spaces
-    size_t replaceIndex = 0;
-    while (true) {
-      replaceIndex = path.find("%20", replaceIndex);
-      if (replaceIndex == std::string::npos) break;
-
-      path.replace(replaceIndex, 3, " ");
-      replaceIndex += 1;
-    }
-    replaceIndex = 0;
-
-    // remove the first #
-    replaceIndex = path.find("#", replaceIndex);
-    path.erase(replaceIndex, 1);
-
-    // replace the :s with /
-    replaceIndex = 0;
-    while (true) {
-      replaceIndex = path.find(":", replaceIndex);
-      if (replaceIndex == std::string::npos) break;
-
-      path.replace(replaceIndex, 1, "/");
-      replaceIndex += 1;
-    }
-  } else { 
-    pathNode = getAudioNode() -> FirstChildElement("SampleRef")
-                              -> FirstChildElement("FileRef");
-
-    tinyxml2::XMLElement * dirNode = pathNode -> FirstChildElement("SearchHint")
-                                      -> FirstChildElement("PathHint")
-                                      -> FirstChildElement("RelativePathElement");
-
-    // get file path
-    path = "/";
-    while (dirNode != nullptr) {
-      path += dirNode -> Attribute("Dir");
-      path += "/";
-      dirNode = dirNode -> NextSiblingElement("RelativePathElement");
-    }
-
-    // get file name
-    tinyxml2::XMLElement * nameNode = pathNode -> FirstChildElement("Name");
-    path += nameNode -> Attribute("Value");
+  // get file path
+  std::string path = userLibrary;
+  while (dirNode != nullptr) {
+    path += dirNode -> Attribute("Dir");
+    path += "/";
+    dirNode = dirNode -> NextSiblingElement("RelativePathElement");
   }
+
+  // get file name
+  tinyxml2::XMLElement * nameNode = 
+    pathNode -> FirstChildElement("Name");
+  path += nameNode -> Attribute("Value");
+  // }
 
   return path;
 }
@@ -220,6 +190,7 @@ bool AbletonSampleFile::readDoc() {
   if (false) {
     // Path
     referenceFilePath = getSortDataNode() -> Attribute("ReferenceFilePath");
+
     // Tuning
     long tuningCents = getPitchFineNode() -> IntAttribute("Value");
     // Tempo
@@ -265,11 +236,17 @@ bool AbletonSampleFile::readDoc() {
 }
 
 void AbletonSampleFile::writeToFile() {
+  std::cout << "here :) " << std::endl;
   // Delete old data to write new
+  std::cout << "going beetch" << std::endl;
   tinyxml2::XMLElement * sortData = getSortDataNode();
-  doc.RootElement() -> FirstChildElement("LiveSet")
-                    -> DeleteChild(sortData);
+  if (sortData != NULL) {
+    doc.RootElement() -> FirstChildElement("LiveSet")
+                      -> DeleteChild(sortData);
+  }
   sortData = doc.NewElement("SampleSorter");
+
+  std::cout << "whatt" << std::endl;
 
   // Path
   sortData -> SetAttribute("ReferenceFilePath", referenceFilePath.c_str());

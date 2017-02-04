@@ -36,6 +36,8 @@ void Tempo::fineTuneTempo(
     ) {
   double guessTempo = tempo;
 
+  std::vector<std::pair<double, double>> tempoValues(steps);
+
   double minValue = onsets.size();
   double minTempo = guessTempo;
   int minOneBin = 0;
@@ -46,16 +48,18 @@ void Tempo::fineTuneTempo(
   double midBins = Units::tempoToBins(guessTempo, HOP_SIZE, sampleRate);
   double minBins = midBins * (1 - percentageError);
   double maxBins = midBins * (1 + percentageError);
+
   for (double bins = minBins;
       bins < maxBins;
       bins += (maxBins - minBins)/double(steps)) {
 
     tempo = Units::binsToTempo(bins, HOP_SIZE, sampleRate);
-    
+
     // guess a one in the range
     for (theOneBin = 0;
         theOneBin < bins;
         theOneBin ++) {
+        
       // calculate the value
       double newValue = getValue(onsets, true);
 
@@ -103,16 +107,17 @@ double Tempo::getTempo() const {
 double Tempo::distanceFromBeat(
     double bin,
     bool bidirectional,
-    long hopSize,
     long sampleRate
     ) const {
+
   double distance = 
-    (bin - theOneBin)/Units::tempoToBins(tempo, hopSize, sampleRate);
+    (bin - theOneBin)/Units::tempoToBins(tempo, HOP_SIZE, sampleRate);
   if (bidirectional) {
     distance = std::abs(distance - std::round(distance));
   } else {
     distance = distance - std::floor(distance);
   }
+
   return distance;
 }
 
@@ -123,7 +128,7 @@ double Tempo::getValue(
 
   double value = 0;
   for (size_t bin = 0; bin < onsets.size(); bin ++) {
-    value += distanceFromBeat(bin, HOP_SIZE, sampleRate, bidirectional) * onsets[bin];
+    value += distanceFromBeat(bin, bidirectional, sampleRate) * onsets[bin];
   }
   
   return value;
@@ -136,25 +141,11 @@ Tempo::Tempo(
     int tempoSteps,
     int oneSteps) : sampleRate(sampleRate_) {
 
-  std::cout << audio.size() << ", " << audio[0].size() << std::endl;
-  std::cout << sampleRate << std::endl;
-
-  std::cout << "Plotting audio..." << std::endl;
-  Plotting::plotVector(audio[0], 1., 0);
-
-  //std::cout << "starting tempo" << std::endl;
-
   long windowRatio = 2;
   std::vector<double> onsets =
     SpectralProcessing::onsetEnergy(audio, HOP_SIZE, windowRatio);
 
-  std::cout << "Plotting onsets..." << std::endl;
-  Plotting::plotVector(onsets, 1., 0);
-
   findCorrelationTempo(onsets);
-
-
-  std::cout << "guessed tempo: " << getTempo() * 60. << std::endl;
 
   fineTuneTempo(
       percentageError,
@@ -162,30 +153,7 @@ Tempo::Tempo(
       onsets
       );
 
-  std::cout << "fine tuned tempo: " << getTempo() * 60. << std::endl;
-
-  //aCoefficients.resize(degrees);
-  //bCoefficients.resize(degrees);
-  //std::fill(aCoefficients.begin(), aCoefficients.end(), 0);
-  //std::fill(bCoefficients.begin(), bCoefficients.end(), 0);
-  //gradientDescent(onsets, hopSize, sampleRate);
-
-  std::cout << "the One: " << getTheOne() << std::endl;
-
   fineTuneTheOne(onsets, oneSteps);
-
-  std::cout << "the fine tuned One: " << getTheOne() << std::endl;
-
-  //for (long i = 0; i < getDegree(); i++) {
-    //std::cout << "a[" << i << "]=" << aCoefficients[i] << std::endl;
-    //std::cout << "a[" << i << "]=" << bCoefficients[i] << std::endl;
-  //}
-
-  plotOnsetsWithBeats(onsets);
-  //plotBeats(0.001);
-  //plotTempo(0.001);
-  //
-
 }
 
 void Tempo::findCorrelationTempo(
@@ -229,9 +197,6 @@ void Tempo::findCorrelationTempo(
 
   std::vector<std::pair<double, double> > peaks = 
     SpectralProcessing::findPeaks(fft, fftSize, sampleRate/HOP_SIZE);
-
-  std::cout << "about to plot some pairs?" << std::endl;
-  Plotting::plotPair(peaks);
 
   fftw_free(fft);
 

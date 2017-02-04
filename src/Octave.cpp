@@ -2,6 +2,7 @@
 #include <cmath>
 #include <complex>
 #include <iostream>
+#include <algorithm>
 
 #include <fftw3.h>
 
