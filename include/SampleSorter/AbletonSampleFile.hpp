@@ -57,7 +57,6 @@ class AbletonSampleFile : public SampleFile {
     tinyxml2::XMLElement * getHiddenLoopEndNode();
     tinyxml2::XMLElement * getNameNode();
     tinyxml2::XMLElement * getPitchFineNode();
-
     
     // various fetchers
     std::string fetchReferenceFilePath();

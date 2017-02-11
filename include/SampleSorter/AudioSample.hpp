@@ -10,11 +10,13 @@ class AudioSample {
   private:
     long tuningCents;
     Tempo tempo;
+    short fundemental;
     std::vector<Octave> chords;
     double totalSeconds;
     long sampleRate;
 
     void tune(std::vector<std::vector<double> > & audio);
+    void findFundemental(std::vector<std::vector<double> > & audio);
     void findBeat(std::vector<std::vector<double> > & audio);
     void findChords(std::vector<std::vector<double> > & audio);
 
@@ -24,6 +26,7 @@ class AudioSample {
   public:
     AudioSample();
     AudioSample(long tuningCents_,
+                short fundemental,
                 double rawBeat,
                 double theOne,
                 double totalSeconds,
@@ -33,6 +36,7 @@ class AudioSample {
 
     double getTotalSeconds() const;
     long getTuningCents() const;
+    short getFundemental() const;
     double getTuningCentsFreqRatio() const;
     double getBeatRaw() const;
     double getBeatWithTuning() const;

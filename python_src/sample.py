@@ -23,6 +23,11 @@ class Sample:
         lib.getTuningCents.restype = ctypes.c_long
         return lib.getTuningCents(self.s)
 
+    def getFundamental(self):
+        lib.getTuningCents.argtypes = [ctypes.c_void_p]
+        lib.getTuningCents.restype = ctypes.c_short
+        return lib.getFundemental(self.s)
+
     def getTheOne(self):
         lib.getTheOneWithTuning.argtypes = [ctypes.c_void_p]
         lib.getTheOneWithTuning.restype = ctypes.c_double

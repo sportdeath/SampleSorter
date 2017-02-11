@@ -41,7 +41,7 @@ void Tempo::fineTuneTempo(
     ) {
   double guessTempo = tempo;
 
-  std::vector<std::pair<double, double>> tempoValues(steps);
+  std::vector<std::pair<double, double>> tempoValues(steps + 1);
 
   double minValue = onsets.size();
   double minTempo = guessTempo;
@@ -102,6 +102,7 @@ void Tempo::fineTuneTheOne(
       minOneBin = theOneBin;
     }
   }
+
   theOneBin = minOneBin;
 }
 

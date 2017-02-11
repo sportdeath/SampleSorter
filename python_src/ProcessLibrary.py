@@ -82,6 +82,7 @@ def findPairs(files, semitonesLowerBound, semitonesUpperBound, tuningBound):
 
             for r in ratios:
                 numCents = 1200. * math.log(ratio/r, 2.)
+                steps = round(numCents/100.)
                 distanceFromSemitone = (numCents % 100.)
                 if distanceFromSemitone > 50:
                     distanceFromSemitone = 100 - distanceFromSemitone

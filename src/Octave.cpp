@@ -185,3 +185,16 @@ void Octave::add(Octave & output, const Octave & other) const {
 std::vector<double> Octave::getSpectrogram() const {
   return spectrogram;
 }
+
+long Octave::getMax() const {
+  long max = 0;
+  double maxValue = 0;
+  for (long i = 0; i < spectrogram.size();i ++) {
+    if (spectrogram[i] > maxValue) {
+      max = i;
+      maxValue = spectrogram[i];
+    }
+  }
+  return max;
+}
+

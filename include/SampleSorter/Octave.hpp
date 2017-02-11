@@ -62,6 +62,8 @@ class Octave {
     void add(Octave & output, const Octave & that) const;
 
     std::vector<double> getSpectrogram() const;
+
+    long getMax() const;
 };
 
 #endif

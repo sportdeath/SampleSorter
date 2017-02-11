@@ -49,6 +49,7 @@ double AbletonSampleFile::getSampleSeconds() const {
 }
 
 std::vector< std::vector<double> > AbletonSampleFile::extractAudio(long * sampleRate) {
+  std::cout << referenceFilePath << std::endl;
   return AudioFile::read(referenceFilePath, startSeconds, endSeconds, sampleRate);
 }
 
@@ -184,13 +185,14 @@ bool AbletonSampleFile::readDoc() {
   startSeconds = getLoopStartNode() -> DoubleAttribute("Value");
   endSeconds = getLoopEndNode() -> DoubleAttribute("Value");
 
+  referenceFilePath = fetchReferenceFilePath();
+
   // if this has already been processed
   if (getSortDataNode() != nullptr) {
-    // Path
-    referenceFilePath = getSortDataNode() -> Attribute("ReferenceFilePath");
-
     // Tuning
     long tuningCents = getPitchFineNode() -> IntAttribute("Value");
+    // Fundemental
+    short fundemental = getSortDataNode() -> IntAttribute("Fundemental");
     // Tempo
     double rawBeat = getSortDataNode() -> DoubleAttribute("RawBeat");
     // One
@@ -218,6 +220,7 @@ bool AbletonSampleFile::readDoc() {
     // Make the sample!
     sample = AudioSample(
         tuningCents, 
+        fundemental,
         rawBeat, 
         theOne, 
         endSeconds - startSeconds, 
@@ -227,8 +230,7 @@ bool AbletonSampleFile::readDoc() {
 
     return true;
   } else {
-    // it was not already processed, return false
-    referenceFilePath = fetchReferenceFilePath();
+      // it was not already processed, return false
     return false;
   }
 }
@@ -251,17 +253,18 @@ void AbletonSampleFile::writeToFile() {
   sortData -> SetAttribute("TheOne", getAudioSample() -> getTheOneRaw());
   // Sample rate
   sortData -> SetAttribute("SampleRate", int(getAudioSample() -> getSampleRate()));
+  // Fundemental
+  sortData -> SetAttribute("Fundemental", getAudioSample() -> getFundemental());
 
   // Loop ends
   // set the loop start to be the first beat
-  double firstBeatSeconds = startSeconds + getAudioSample() -> getTheOneRaw();
-  double lastBeatSeconds = startSeconds + getAudioSample() -> getLastBeatSeconds();
-  getHiddenLoopStartNode() -> SetAttribute("Value", firstBeatSeconds);
-  getHiddenLoopEndNode() -> SetAttribute("Value", lastBeatSeconds);
+  getHiddenLoopStartNode() -> SetAttribute("Value", startSeconds);
+  getHiddenLoopEndNode() -> SetAttribute("Value", endSeconds);
 
   // Tuning
   getPitchFineNode() 
     -> SetAttribute("Value", int(getAudioSample() -> getTuningCents()));
+  
 
   // Name
   getNameNode() -> SetAttribute("Value",

@@ -25,9 +25,16 @@ AudioSample::AudioSample(
     long _sampleRate
     ) : sampleRate(_sampleRate) {
   totalSeconds = Units::samplesToSeconds(audio[0].size(), sampleRate);
-  tune(audio);
+  // filter the audio
+  std::vector<std::vector<double> > filteredAudio;
+  EqualLoudness::filter(filteredAudio, audio, sampleRate);
+
+  tune(filteredAudio);
+  findFundemental(filteredAudio);
+  // do not use the filtered audio here
+  // the information is useful
   findBeat(audio);
-  findChords(audio);
+  findChords(filteredAudio);
 }
 
 double AudioSample::getTotalSeconds() const {
@@ -36,6 +43,7 @@ double AudioSample::getTotalSeconds() const {
 
 AudioSample::AudioSample(
     long tuningCents_,
+    short fundemental_,
     double rawBeat,
     double theOneBin,
     double totalSeconds_,
@@ -46,15 +54,18 @@ AudioSample::AudioSample(
 {
   totalSeconds = totalSeconds_;
   tuningCents = tuningCents_;
+  fundemental = fundemental_;
   chords = chords_;
 }
 
 void AudioSample::tune(std::vector<std::vector<double> > & audio) {
-  std::vector<std::vector<double> > filteredAudio;
-  EqualLoudness::filter(filteredAudio, audio, sampleRate);
-
-  Octave oct(filteredAudio, 1200., sampleRate);
+  Octave oct(audio, 1200., sampleRate);
   tuningCents = oct.tune();
+}
+
+void AudioSample::findFundemental(std::vector<std::vector<double> > & audio) {
+  Octave oct(audio, 12., sampleRate, tuningCents);
+  fundemental = oct.getMax();
 }
 
 void AudioSample::findBeat(std::vector<std::vector<double> > & audio) {
@@ -68,11 +79,8 @@ void AudioSample::findBeat(std::vector<std::vector<double> > & audio) {
 }
 
 void AudioSample::findChords(std::vector<std::vector<double> > & audio) {
-  // filter the audio
-  std::vector<std::vector<double> > filteredAudio;
-  EqualLoudness::filter(filteredAudio, audio, sampleRate);
   TimeDomainProcessing::unitEnergyPerBeat(
-      filteredAudio, filteredAudio, tempo.getTempo(), sampleRate);
+      audio, audio, tempo.getTempo(), sampleRate);
 
   int windowSize = Units::tempoToSamples(tempo.getTempo(), sampleRate);
   long startSample = Units::secondsToSamples(tempo.getTheOne(), sampleRate);
@@ -98,10 +106,10 @@ void AudioSample::findChords(std::vector<std::vector<double> > & audio) {
     Octave chord;
 
     // for each channel
-    for (long channel = 0; channel < filteredAudio.size(); channel ++) {
+    for (long channel = 0; channel < audio.size(); channel ++) {
       // window this section
       for (long i = 0; i < windowSize; i++) {
-        window[i] = filteredAudio[channel][i + startSample];
+        window[i] = audio[channel][i + startSample];
         window[i] = window[i] * SpectralProcessing::hammingWindow(i, windowSize);
       }
 
@@ -124,6 +132,9 @@ void AudioSample::findChords(std::vector<std::vector<double> > & audio) {
 
 long AudioSample::getTuningCents() const {
   return tuningCents;
+}
+short AudioSample::getFundemental() const {
+  return fundemental;
 }
 double AudioSample::getTuningCentsFreqRatio() const {
   return std::pow(2., tuningCents/1200.);

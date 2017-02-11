@@ -20,6 +20,9 @@ extern "C" {
   long getTuningCents(SampleFile * s) {
     return s -> getAudioSample() -> getTuningCents();
   }
+  short getFundemental(SampleFile * s) {
+    return s -> getAudioSample() -> getFundemental();
+  }
   long getTheOneWithTuning(SampleFile * s) {
     return s -> getAudioSample() -> getTheOneWithTuning();
   }
