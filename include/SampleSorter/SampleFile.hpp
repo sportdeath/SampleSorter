@@ -14,7 +14,7 @@ class SampleFile {
     AudioSample sample;
   public:
     SampleFile(std::string filePath_);
-    bool process(bool forceReprocess);
+    bool process();
 
     std::string getFilePath();
     std::string getFileName();

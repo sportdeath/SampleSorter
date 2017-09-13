@@ -7,12 +7,12 @@
 #include "Plotting/Plotting.hpp"
 
 extern "C" {
-  SampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary) {
-    AbletonSampleFile * s = new AbletonSampleFile(filePath, userLibrary);
+  SampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary, bool forceReprocess) {
+    AbletonSampleFile * s = new AbletonSampleFile(filePath, userLibrary, forceReprocess);
     return s;
   }
-  bool process(SampleFile * s, bool forceReprocess) {
-    return s -> process(forceReprocess);
+  bool process(SampleFile * s) {
+    return s -> process();
   }
   const char * getFileName(SampleFile * s) {
     return s -> getFileName().c_str();
@@ -43,6 +43,14 @@ extern "C" {
     }
     return chordsArray;
   }
+  double * getOctave(SampleFile * s) {
+    Octave octave = s -> getAudioSample() -> getOctave();
+    double * octaveArray = new double [12];
+    for (long i = 0; i < 12; i++) {
+      octaveArray[i] = octave.getSpectrogram()[i];
+    }
+    return octaveArray;
+  }
   void writeToFile(AbletonSampleFile * s) {
     s -> writeToFile();
   }
@@ -51,6 +59,9 @@ extern "C" {
       delete chords[i];
     }
     delete chords;
+  }
+  void deleteOctave(double * octave) {
+    delete octave;
   }
   void deleteAbletonSampleFile(AbletonSampleFile * s) {
     delete s;

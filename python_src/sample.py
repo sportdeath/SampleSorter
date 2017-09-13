@@ -4,19 +4,19 @@ import math
 lib = ctypes.CDLL("../build/libSampleSorter.so")
 
 class Sample:
-    def __init__(self, fileName, userLibrary):
+    def __init__(self, fileName, userLibrary, forceReprocess):
         lib.NewAbletonSampleFile.restype = ctypes.c_void_p
-        self.s = lib.NewAbletonSampleFile(str(fileName).encode('ascii'), str(userLibrary).encode('ascii'))
+        self.s = lib.NewAbletonSampleFile(str(fileName).encode('ascii'), str(userLibrary).encode('ascii'), forceReprocess)
 
     def getFileName(self):
         lib.getFileName.argtypes = [ctypes.c_void_p]
         lib.getFileName.restype = ctypes.c_char_p
         return lib.getFileName(self.s)
         
-    def process(self, forceReprocess):
-        lib.process.argtypes = [ctypes.c_void_p, ctypes.c_bool]
+    def process(self):
+        lib.process.argtypes = [ctypes.c_void_p]
         lib.process.restype = ctypes.c_bool
-        return lib.process(self.s, forceReprocess)
+        return lib.process(self.s)
 
     def getTuning(self):
         lib.getTuningCents.argtypes = [ctypes.c_void_p]
@@ -27,6 +27,19 @@ class Sample:
         lib.getTuningCents.argtypes = [ctypes.c_void_p]
         lib.getTuningCents.restype = ctypes.c_short
         return lib.getFundemental(self.s)
+
+    def getOctave(self):
+        # allocate enough space
+        lib.getOctave.argtypes = [ctypes.c_void_p]
+        lib.getOctave.restype = ctypes.POINTER(ctypes.c_double * 12)
+        c_octave = lib.getOctave(self.s)
+        octave = [value for value in c_octave.contents]
+
+        # delete allocated space
+        lib.deleteOctave.argtypes = [ctypes.c_void_p]
+        lib.deleteOctave(c_octave)
+
+        return octave
 
     def getTheOne(self):
         lib.getTheOneWithTuning.argtypes = [ctypes.c_void_p]

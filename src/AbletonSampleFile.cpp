@@ -21,18 +21,26 @@
 AbletonSampleFile::AbletonSampleFile(const AbletonSampleFile & other) 
   : SampleFile(other)
 {
-  AbletonSampleFile(other.filePath, other.userLibrary);
+  AbletonSampleFile(other.filePath, other.userLibrary, other.wasOrWillBeProcessed);
 }
 
 AbletonSampleFile::AbletonSampleFile(
     std::string filePath,
-    std::string userLibrary) 
+    std::string userLibrary,
+    bool forceReprocess_) 
   : SampleFile(filePath),
     userLibrary(userLibrary)
-{}
+{
+  forceReprocess = forceReprocess_;
+}
 
 bool AbletonSampleFile::readMetaData() {
   getDoc();
+  wasOrWillBeProcessed = (getSortDataNode() == nullptr) or forceReprocess;
+  if (not wasOrWillBeProcessed)  {
+    wasOrWillBeProcessed = wasOrWillBeProcessed or 
+    ((getSortDataNode() -> FirstChildElement("Octave")) == nullptr);
+  }
   return readDoc();
 }
 
@@ -180,7 +188,6 @@ std::string AbletonSampleFile::fetchReferenceFilePath() {
 }
 
 bool AbletonSampleFile::readDoc() {
-
   // Start and end times in seconds
   startSeconds = getLoopStartNode() -> DoubleAttribute("Value");
   endSeconds = getLoopEndNode() -> DoubleAttribute("Value");
@@ -188,7 +195,7 @@ bool AbletonSampleFile::readDoc() {
   referenceFilePath = fetchReferenceFilePath();
 
   // if this has already been processed
-  if (getSortDataNode() != nullptr) {
+  if (not wasOrWillBeProcessed) {
     // Tuning
     long tuningCents = getPitchFineNode() -> IntAttribute("Value");
     // Fundemental
@@ -199,6 +206,16 @@ bool AbletonSampleFile::readDoc() {
     double theOne = getSortDataNode() -> DoubleAttribute("TheOne");
     // SampleRate
     double sampleRate = getSortDataNode() -> IntAttribute("SampleRate");
+
+    // Octave
+    tinyxml2::XMLElement * octaveElement = getSortDataNode() 
+      -> FirstChildElement("Octave");
+    std::vector<double> octaveSpectrogram(12);
+    for (long i = 0; i < 12; i++) {
+      octaveSpectrogram[i] = octaveElement -> DoubleAttribute("Value");
+      octaveElement = octaveElement -> NextSiblingElement("Octave");
+    }
+    Octave octave(octaveSpectrogram);
 
     // Chords
     std::vector<Octave> chords;
@@ -225,7 +242,8 @@ bool AbletonSampleFile::readDoc() {
         theOne, 
         endSeconds - startSeconds, 
         sampleRate,
-        chords
+        chords,
+        octave
         );
 
     return true;
@@ -236,6 +254,8 @@ bool AbletonSampleFile::readDoc() {
 }
 
 void AbletonSampleFile::writeToFile() {
+  if (not wasOrWillBeProcessed) return;
+
   // Delete old data if it exists
   tinyxml2::XMLElement * sortData = getSortDataNode();
   if (sortData != NULL) {
@@ -273,6 +293,14 @@ void AbletonSampleFile::writeToFile() {
         std::to_string(60. * (getAudioSample() -> getBeatWithTuning()))
       ).c_str()
     );
+
+  // Octave
+  Octave octave = getAudioSample() -> getOctave();
+  for (short i = 0; i < 12; i++) {
+    tinyxml2::XMLElement * octaveElement = doc.NewElement("Octave");
+    octaveElement -> SetAttribute("Value", octave.getSpectrogram()[i]);
+    sortData -> InsertEndChild(octaveElement);
+  }
 
   // Chords
   std::vector<Octave> chords = getAudioSample() -> getChords();

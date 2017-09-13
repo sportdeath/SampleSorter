@@ -11,9 +11,9 @@ SampleFile::SampleFile(std::string filePath_) {
   filePath = filePath_;
 }
 
-bool SampleFile::process(bool forceReprocess) {
+bool SampleFile::process() {
   try {
-    if ((not readMetaData()) or forceReprocess) {
+    if (not readMetaData()) {
       long sampleRate;
       std::vector< std::vector<double> > waves = extractAudio(&sampleRate);
       sample = AudioSample(waves, sampleRate);

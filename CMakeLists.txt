@@ -96,20 +96,20 @@ set(LIBS ${LIBS} ${PROJECT_NAME})
 
 # Google Test
 # For testing
-include(ExternalProject)
-ExternalProject_Add(
-  gtest
-  GIT_REPOSITORY https://github.com/google/googletest.git
-  PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
-  TIMEOUT 10
-  UPDATE_COMMAND ""
-  INSTALL_COMMAND "")
+#include(ExternalProject)
+#ExternalProject_Add(
+  #gtest
+  #GIT_REPOSITORY https://github.com/google/googletest.git
+  #PREFIX ${CMAKE_CURRENT_BINARY_DIR}/gtest
+  #TIMEOUT 10
+  #UPDATE_COMMAND ""
+  #INSTALL_COMMAND "")
 
-enable_testing()
+#enable_testing()
 
-ExternalProject_Get_Property(gtest source_dir binary_dir)
-include_directories("${source_dir}/googletest/include")
-set(LIBS ${LIBS} "${binary_dir}/googlemock/gtest/libgtest.a")
+#ExternalProject_Get_Property(gtest source_dir binary_dir)
+#include_directories("${source_dir}/googletest/include")
+#set(LIBS ${LIBS} "${binary_dir}/googlemock/gtest/libgtest.a")
 
 #####################################
 ## Unit Tests with CTest and GTest

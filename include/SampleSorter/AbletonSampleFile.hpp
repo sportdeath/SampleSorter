@@ -22,6 +22,9 @@ class AbletonSampleFile : public SampleFile {
 
     std::string userLibrary;
 
+    bool wasOrWillBeProcessed;
+    bool forceReprocess;
+
     std::string referenceFilePath;
     double startSeconds;
     double endSeconds;
@@ -62,7 +65,7 @@ class AbletonSampleFile : public SampleFile {
     std::string fetchReferenceFilePath();
 
   public:
-    AbletonSampleFile(std::string filePath, std::string userLibrary);
+    AbletonSampleFile(std::string filePath, std::string userLibrary, bool forceReprocess);
 
     AbletonSampleFile(const AbletonSampleFile & other);
 

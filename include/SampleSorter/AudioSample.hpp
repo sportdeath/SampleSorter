@@ -12,6 +12,7 @@ class AudioSample {
     Tempo tempo;
     short fundemental;
     std::vector<Octave> chords;
+    Octave octave;
     double totalSeconds;
     long sampleRate;
 
@@ -31,7 +32,8 @@ class AudioSample {
                 double theOne,
                 double totalSeconds,
                 long sampleRate,
-                std::vector<Octave> chords);
+                std::vector<Octave> chords,
+                Octave octave);
     AudioSample(std::vector<std::vector<double> > & audio, long _sampleRate);
 
     double getTotalSeconds() const;
@@ -43,6 +45,7 @@ class AudioSample {
     double getTheOneRaw() const;
     double getTheOneWithTuning() const;
     std::vector<Octave> getChords() const;
+    Octave getOctave() const;
     long getSampleRate() const;
     double getLastBeatSeconds() const;
 };

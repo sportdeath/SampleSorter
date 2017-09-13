@@ -11,6 +11,8 @@
 #include "SampleSorter/Units.hpp"
 #include "SampleSorter/Tempo.hpp"
 
+#include "Plotting/Plotting.hpp"
+
 // 20% error max
 const double AudioSample::TEMPO_PERCENTAGE_ERROR = 0.2;
 const double AudioSample::TEMPO_STEPS = 2000;
@@ -24,6 +26,7 @@ AudioSample::AudioSample(
     std::vector<std::vector<double> > & audio,
     long _sampleRate
     ) : sampleRate(_sampleRate) {
+
   totalSeconds = Units::samplesToSeconds(audio[0].size(), sampleRate);
   // filter the audio
   std::vector<std::vector<double> > filteredAudio;
@@ -34,7 +37,11 @@ AudioSample::AudioSample(
   // do not use the filtered audio here
   // the information is useful
   findBeat(audio);
-  findChords(filteredAudio);
+
+  // no more chords
+  // findChords(filteredAudio);
+  // chords.resize(1);
+  // chords[0] = octave;
 }
 
 double AudioSample::getTotalSeconds() const {
@@ -48,7 +55,8 @@ AudioSample::AudioSample(
     double theOneBin,
     double totalSeconds_,
     long sampleRate,
-    std::vector<Octave> chords_) :
+    std::vector<Octave> chords_,
+    Octave octave_) :
   tempo(rawBeat, theOneBin, sampleRate),
   sampleRate(sampleRate)
 {
@@ -56,6 +64,7 @@ AudioSample::AudioSample(
   tuningCents = tuningCents_;
   fundemental = fundemental_;
   chords = chords_;
+  octave = octave_;
 }
 
 void AudioSample::tune(std::vector<std::vector<double> > & audio) {
@@ -64,8 +73,8 @@ void AudioSample::tune(std::vector<std::vector<double> > & audio) {
 }
 
 void AudioSample::findFundemental(std::vector<std::vector<double> > & audio) {
-  Octave oct(audio, 12., sampleRate, tuningCents);
-  fundemental = oct.getMax();
+  octave = Octave(audio, 12., sampleRate, tuningCents);
+  fundemental = octave.getMax();
 }
 
 void AudioSample::findBeat(std::vector<std::vector<double> > & audio) {
@@ -153,6 +162,9 @@ double AudioSample::getTheOneWithTuning() const {
 }
 std::vector<Octave> AudioSample::getChords() const {
   return chords;
+}
+Octave AudioSample::getOctave() const {
+  return octave;
 }
 long AudioSample::getSampleRate() const {
   return sampleRate;

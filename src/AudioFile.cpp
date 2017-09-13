@@ -31,6 +31,7 @@ std::vector<std::vector<double> > AudioFile::read(
   // open file and get format information
   AVFormatContext * formatContext = NULL;
   if (avformat_open_input(&formatContext, fileName.c_str(), NULL, 0) != 0) {
+    std::cout << fileName << std::endl;
     throw ProcessingException("Could not open audio file!");
   }
 
@@ -257,7 +258,9 @@ double AudioFile::getSample(
   }
 
   // if the raw values are padded for uneven bit depths (i.e. 24)
-  rawValue = (rawValue >> (sampleBytes * 8 - codecContext -> bits_per_raw_sample));
+  if (codecContext -> bits_per_raw_sample > 0) {
+    rawValue = (rawValue >> (sampleBytes * 8 - codecContext -> bits_per_raw_sample));
+  }
 
   double value;
 
@@ -273,11 +276,11 @@ double AudioFile::getSample(
       break;
     case AV_SAMPLE_FMT_FLT:
     case AV_SAMPLE_FMT_FLTP:
-      value = *((float *)(&rawValue));
+      value = static_cast<double>(*reinterpret_cast<float *>(&rawValue));
       break;
     case AV_SAMPLE_FMT_DBL:
     case AV_SAMPLE_FMT_DBLP:
-      value = *((double *)(&rawValue));
+      value = *reinterpret_cast<double *>(&rawValue);
       break;
     default:
       throw ProcessingException("Sample format is invalid!");
