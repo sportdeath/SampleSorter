@@ -102,4 +102,4 @@ macro(MAKE_TEST test_name)
   add_test(${test_name} ${test_name})
 endmacro()
 
-MAKE_TEST(basic_test)
+MAKE_TEST(make_examples)

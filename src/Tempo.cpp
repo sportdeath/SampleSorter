@@ -214,7 +214,10 @@ void Tempo::findCorrelationTempo(
 
 // plot onsets with beats
 void Tempo::plotOnsetsWithBeats(
-    const std::vector<double> & onsets
+    const std::vector<double> & onsets,
+    std::string title,
+    std::string xaxis,
+    std::string yaxis
     ) const {
 
   std::vector<double> beats;
@@ -224,12 +227,7 @@ void Tempo::plotOnsetsWithBeats(
     beat += Units::tempoToSeconds(tempo);
   }
 
-  std::vector<std::pair<double, double> > onsetSeconds(onsets.size());
-
-  for (long bin = 0; bin < onsets.size(); bin++) {
-    onsetSeconds[bin] = std::make_pair(Units::binsToSeconds(bin, HOP_SIZE, sampleRate), onsets[bin]);
-  }
-
-  Plotting::plotLineAndMarkers(onsetSeconds, beats, 0.5);
+  double binsToSeconds = Units::binsToSeconds(1, HOP_SIZE, sampleRate);
+  Plotting::plotVector(onsets, title, xaxis, yaxis, binsToSeconds, 0, false, 0, beats);
 }
 

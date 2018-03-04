@@ -57,7 +57,6 @@ double AbletonSampleFile::getSampleSeconds() const {
 }
 
 std::vector< std::vector<double> > AbletonSampleFile::extractAudio(long * sampleRate) {
-  std::cout << referenceFilePath << std::endl;
   return AudioFile::read(referenceFilePath, startSeconds, endSeconds, sampleRate);
 }
 
@@ -72,6 +71,7 @@ void AbletonSampleFile::getDoc() {
     in.push(zipped);
     boost::iostreams::copy(in, unzipped);
   } catch (boost::iostreams::gzip_error & e) {
+    std::cerr << e.what() << std::endl;
     throw ProcessingException("Could not ungzip Ableton file!");
   }
 
@@ -96,6 +96,7 @@ void AbletonSampleFile::setDoc() {
     filter.push(unzipped);
     boost::iostreams::copy(filter, zipped);
   } catch (boost::iostreams::gzip_error & e) {
+    std::cerr << e.what() << std::endl;
     throw ProcessingException("Could not gzip Ableton file!");
   }
 }

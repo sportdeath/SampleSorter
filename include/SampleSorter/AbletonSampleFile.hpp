@@ -7,15 +7,6 @@
 
 #include "SampleSorter/SampleFile.hpp"
 
-//class AbletonNode {
-  //private:
-  //public:
-    //// constructor with list
-    //AbletonNode
-    
-
-//}
-
 class AbletonSampleFile : public SampleFile {
   private:
     tinyxml2::XMLDocument doc;
@@ -38,8 +29,6 @@ class AbletonSampleFile : public SampleFile {
 
     // writes file
     void setDoc();
-
-    virtual std::vector< std::vector<double> > extractAudio(long * sampleRate);
 
     // opens and parses file
     virtual bool readMetaData();
@@ -75,6 +64,9 @@ class AbletonSampleFile : public SampleFile {
     virtual double getSampleSeconds() const;
 
     void writeToFile();
+
+    virtual std::vector< std::vector<double> > extractAudio(long * sampleRate);
+
 };
 
 #endif

@@ -7,7 +7,6 @@
 
 class SampleFile {
   private:
-    virtual std::vector< std::vector<double> > extractAudio(long * sampleRate) = 0;
     virtual bool readMetaData() = 0;
   protected:
     std::string filePath;
@@ -21,6 +20,7 @@ class SampleFile {
 
     virtual double getSampleSeconds() const = 0;
     AudioSample * getAudioSample();
+    virtual std::vector< std::vector<double> > extractAudio(long * sampleRate) = 0;
 };
 
 #endif

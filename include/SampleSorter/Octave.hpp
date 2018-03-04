@@ -57,7 +57,7 @@ class Octave {
      */
     long tune();
 
-    void plot() const;
+    void plot(std::string title, std::string xaxis, std::string yaxis, bool histogram=false) const;
 
     void add(Octave & output, const Octave & that) const;
 

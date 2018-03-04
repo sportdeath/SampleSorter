@@ -98,10 +98,11 @@ class Tempo {
         const std::vector<double> & onsets
         );
 
-    void plotBeats(double resolution) const;
-    void plotTempo(double resolution) const;
     void plotOnsetsWithBeats(
-        const std::vector<double> & onsets
+        const std::vector<double> & onsets,
+        std::string title,
+        std::string xaxis,
+        std::string yaxis
         ) const;
     
 };

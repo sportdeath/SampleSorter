@@ -167,8 +167,8 @@ long Octave::tune() {
   return minBin * getCentsPerBin();
 }
 
-void Octave::plot() const {
-  Plotting::plotVector(spectrogram, 1/getBinsPerSemitone());
+void Octave::plot(std::string title, std::string xaxis, std::string yaxis, bool histogram) const {
+  Plotting::plotVector(spectrogram, title, xaxis, yaxis, 1/getBinsPerSemitone(), 0., histogram);
 }
 
 void Octave::add(Octave & output, const Octave & other) const {

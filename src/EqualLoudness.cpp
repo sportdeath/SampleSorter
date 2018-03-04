@@ -1,5 +1,6 @@
 #include <vector>
 #include <cmath>
+#include <iostream>
 
 #include <fftw3.h>
 
@@ -9,11 +10,11 @@ double EqualLoudness::AWeightingAmp(double freq) {
   if (freq > 30000 or freq < 10)
     return 0;
   double freqSquared = freq*freq;
-  double top = 148840000*freqSquared*freqSquared;
-  double bot1 = 424.36 + freqSquared;
-  double bot2 = 11599.29 + freqSquared;
-  double bot3 = 544496.41 + freqSquared;
-  double bot4 = 1488840000 + freqSquared;
+  double top = 12194*12194*freqSquared*freqSquared;
+  double bot1 = 20.6*20.6 + freqSquared;
+  double bot2 = 107.7*107.7 + freqSquared;
+  double bot3 = 737.9*737.9 + freqSquared;
+  double bot4 = 12194*12194 + freqSquared;
   return top/(bot1*std::sqrt(bot2*bot3)*bot4);
 }
 
@@ -48,8 +49,10 @@ void EqualLoudness::filter(
       // get freq of bin
       double freq = bin * sampleRate/audio[channel].size();
       // multiply by weighting
-      fft[bin][0] *= AWeightingAmp(freq);
-      fft[bin][1] *= AWeightingAmp(freq);
+      fft[bin][0] *= AWeightingAmp(freq)/audio[channel].size();
+      fft[bin][1] *= AWeightingAmp(freq)/audio[channel].size();
+      //fft[bin][0] *= 1./audio[channel].size();
+      //fft[bin][1] *= 1./audio[channel].size();
     }
 
     fftw_destroy_plan(fftPlanFor);
