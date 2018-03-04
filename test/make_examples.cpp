@@ -54,7 +54,7 @@ int main(int argc, char ** argv) {
   std::cout << "Plotting audio FFT." << std::endl;
   std::vector<double> audioFFTMag = getFFTMag(audio[0]);
   double binToFreq = sampleRate/double(audio[0].size());
-  Plotting::plotVector(audioFFTMag, "Audio FFT", "Frequency (hz)", "Amplitude", binToFreq, 0, false, 10);
+  Plotting::plotVector(audioFFTMag, "Audio FFT", "Frequency (hertz)", "Amplitude", binToFreq, 0, false, 10);
   
   // Filter by equal loudness
   std::vector<std::vector<double> > filteredAudio;
@@ -64,7 +64,7 @@ int main(int argc, char ** argv) {
   Plotting::plotVector(filteredAudio[0], "A-Weighted Audio", "Time (seconds)", "Amplitude", samplesToSeconds);
   std::cout << "Plotting filtered audio FFT." << std::endl;
   std::vector<double> filteredAudioFFTMag = getFFTMag(filteredAudio[0]);
-  Plotting::plotVector(filteredAudioFFTMag, "A-Weighted Audio FFT", "Time (seconds)", "Amplitude", binToFreq, 0, false, 10);
+  Plotting::plotVector(filteredAudioFFTMag, "A-Weighted Audio FFT", "Frequency (hertz)", "Amplitude", binToFreq, 0, false, 10);
   
   // Convert to octave
   Octave oct(filteredAudio, 1200., sampleRate);
