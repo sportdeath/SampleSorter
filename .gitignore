@@ -1,8 +1,8 @@
 # The Cmake build directory
 build/
+tmp/
 TestFiles/
 TestFilesBackup.zip
-python_src/
 
 # OS generated files #
 ######################
@@ -16,5 +16,5 @@ Thumbs.db
 
 # Vim #
 #######
-*.swp
+*.sw*
 *~
