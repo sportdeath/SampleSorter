@@ -76,17 +76,18 @@ def octave_classifier_sum(batch_size, octave_length, reuse=False, training=False
     loss_unlabeled = tf.reduce_mean(tf.sigmoid(decision_negative))
     loss = pi_p * loss_positive + tf.maximum(-beta, loss_unlabeled - pi_p * (1 - loss_positive))
 
-    # print(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-    # loss_regularizer = tf.reduce_mean(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-    # loss_regularizer_sum = tf.summary.scalar('loss_regularizer', loss_regularizer)
+    # Add regularizer
+    loss_regularizer = tf.reduce_mean(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
+    loss = loss + 0.1 * loss_regularizer
 
     # Make summaries
     loss_positive_sum = tf.summary.scalar('loss_positive', loss_positive)
     loss_unlabeled_sum = tf.summary.scalar('loss_unlabeled', loss_unlabeled)
+    loss_regularizer_sum = tf.summary.scalar('loss_regularizer', loss_regularizer)
     loss_sum = tf.summary.scalar('loss', loss)
 
     # Merge the summaries
-    summary = tf.summary.merge((loss_positive_sum, loss_unlabeled_sum, loss_sum))
+    summary = tf.summary.merge((loss_positive_sum, loss_unlabeled_sum, loss_regularizer_sum, loss_sum))
 
     # Optimize
     optimizer = None
@@ -124,8 +125,8 @@ def train():
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/11/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/11/validation")
+        train_writer = tf.summary.FileWriter("tmp/sort/13/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/13/validation")
         train_writer.add_graph(session.graph)
 
         for i in range(100000000):
