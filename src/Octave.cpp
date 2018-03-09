@@ -50,6 +50,8 @@ Octave::Octave(std::vector< std::vector<double> > audio,
 
   fftw_destroy_plan(fftPlan);
   fftw_free(fft);
+
+  //normalize();
 }
 
 Octave::Octave(fftw_complex * fft,
@@ -69,6 +71,8 @@ Octave::Octave(fftw_complex * fft,
     addPeak(peaks[i].first, 
             peaks[i].second,
             baseOffset);
+
+  //normalize();
 }
 
 long Octave::getBins() const {
@@ -84,11 +88,9 @@ double Octave::getCentsPerBin() const {
 }
 
 void Octave::addPeak(double peakFreq, double peakValue, double baseOffset) {
-  if (peakFreq > 1000)
+  if (peakFreq > 5000)
     // Humans do not consider pitches
     // greater than 5000 to have harmonic content
-    return;
-  if (peakValue < 0.005)
     return;
 
   double freqMod = fmod(log2(peakFreq) + baseOffset, 1);
@@ -110,12 +112,6 @@ void Octave::addPeak(double peakFreq, double peakValue, double baseOffset) {
 
     double rightAmp = rightPercent * peakValue;
     double leftAmp = leftPercent * peakValue;
-
-    //if (std::isnan(rightAmp) or std::isnan(leftAmp) ) {
-      //std::cout << "ahhhh" << std::endl;
-      //std::cout << peakValue << std::endl;
-      //std::cout << desiredBin << std::endl;
-    //}
 
     spectrogram[leftBin] += leftAmp;
     spectrogram[rightBin] += rightAmp;
@@ -198,3 +194,18 @@ long Octave::getMax() const {
   return max;
 }
 
+void Octave::normalize() {
+    double norm = sqrt(energy());
+    for (long i = 0; i < spectrogram.size(); i++) {
+        spectrogram[i] = spectrogram[i]/norm;
+    }
+    norm = sqrt(energy());
+}
+
+double Octave::energy() const {
+    double energy = 0;
+    for (long i = 0; i < spectrogram.size(); i++) {
+        energy += spectrogram[i] * spectrogram[i];
+    }
+    return energy;
+}

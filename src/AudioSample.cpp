@@ -174,3 +174,14 @@ double AudioSample::getLastBeatSeconds() const {
     std::floor((totalSeconds - getTheOneRaw()) * getBeatRaw());
   return (numBeats / getBeatRaw()) + getTheOneRaw();
 }
+double AudioSample::energy(std::vector<std::vector<double> > & audio) const {
+    double energy = 0;
+    for (long i = 0; i < audio[0].size(); i++) {
+        double sample = 0;
+        for (long channel = 0; channel < audio.size(); channel++) {
+            sample += audio[channel][i];
+        }
+        energy += sample * sample;
+    }
+    return energy;
+}

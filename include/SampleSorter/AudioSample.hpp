@@ -36,6 +36,8 @@ class AudioSample {
                 Octave octave);
     AudioSample(std::vector<std::vector<double> > & audio, long _sampleRate);
 
+    double energy(std::vector<std::vector<double> > & audio) const;
+
     double getTotalSeconds() const;
     long getTuningCents() const;
     short getFundemental() const;

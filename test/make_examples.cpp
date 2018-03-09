@@ -36,9 +36,11 @@ std::vector<double> getFFTMag(std::vector<double> audio) {
 
 int main(int argc, char ** argv) {
   // The test sample file
-  std::string sampleFile = "../test/User Library/Samples/sample.alc";
+  // std::string sampleFile = "../test/User Library/Samples/sample.alc";
   // The user library root
-  std::string userLibrary = "../test/User Library/";
+  // std::string userLibrary = "../test/User Library/";
+  std::string sampleFile = "/Users/tfh/Documents/UserLibrary/SampleLibrary/Beach boys/a breathy organ from a place of dreams.alc";
+  std::string userLibrary = "/Users/tfh/Documents/UserLibrary/";
 
   // Open the sample file and process it to get file name, etc.
   AbletonSampleFile sample(sampleFile, userLibrary, true);

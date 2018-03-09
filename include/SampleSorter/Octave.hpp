@@ -64,6 +64,9 @@ class Octave {
     std::vector<double> getSpectrogram() const;
 
     long getMax() const;
+
+    void normalize();
+    double energy() const;
 };
 
 #endif
