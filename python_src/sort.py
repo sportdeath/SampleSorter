@@ -5,12 +5,12 @@ def octave_classifier(batch_size, octave_length, name="octave_classifier", train
     with tf.variable_scope(name):
         octave = tf.placeholder(dtype=tf.float32, shape=[batch_size, octave_length])
 
-        localization_layers = [50, 50, 50, octave_length]
+        localization_layers = [100, 100, 100, octave_length]
         choices = _dense_net(octave, localization_layers, "localization", reuse=reuse)
 
         transformed = _octave_rotate_disc(octave, choices)
 
-        classification_layers = [50, 50, 50, 50, 50, 1]
+        classification_layers = [100, 100, 100, 100, 100, 1]
         decision = _dense_net(transformed, classification_layers, "classification", reuse=reuse)
 
     return octave, decision
@@ -30,6 +30,7 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
             activity_regularizer = None
             if i < len(layer_units) - 1:
                 activation = tf.nn.relu
+                # activation = tf.nn.elu
                 activity_regularizer = tf.contrib.layers.l2_regularizer(0.1)
 
             # Dense connection
