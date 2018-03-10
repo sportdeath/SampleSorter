@@ -50,7 +50,7 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
                         name="bn_" + str(i), 
                         reuse=reuse)
 
-                hidden = tf.nn.dropout(hidden, 0.6)
+                hidden = tf.nn.dropout(hidden, 0.9)
 
     return hidden
 
