@@ -50,6 +50,8 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
                         name="bn_" + str(i), 
                         reuse=reuse)
 
+                hidden = tf.nn.dropout(hidden, 0.6)
+
     return hidden
 
 def _octave_rotate_disc(octave, choices, name="octave_rotate_disc"):

@@ -125,8 +125,8 @@ def train():
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/13/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/13/validation")
+        train_writer = tf.summary.FileWriter("tmp/sort/14/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/14/validation")
         train_writer.add_graph(session.graph)
 
         for i in range(100000000):
