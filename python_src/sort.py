@@ -1,16 +1,20 @@
 import numpy as np
 import tensorflow as tf
 
+UNITS_PER_LAYER = 100
+LOCALIZATION_LAYERS = 4
+CLASSIFICATION_LAYERS = 7
+
 def octave_classifier(batch_size, octave_length, name="octave_classifier", training=False, reuse=False):
     with tf.variable_scope(name):
         octave = tf.placeholder(dtype=tf.float32, shape=[batch_size, octave_length])
 
-        localization_layers = [100, 100, 100, octave_length]
+        localization_layers = [UNITS_PER_LAYER] * LOCALIZATION_LAYERS + [octave_length]
         choices = _dense_net(octave, localization_layers, "localization", reuse=reuse)
 
         transformed = _octave_rotate_disc(octave, choices)
 
-        classification_layers = [100, 100, 100, 100, 100, 1]
+        classification_layers = [UNITS_PER_LAYER] * CLASSIFICATION_LAYERS + [1]
         decision = _dense_net(transformed, classification_layers, "classification", reuse=reuse)
 
     return octave, decision
@@ -50,7 +54,8 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
                         name="bn_" + str(i), 
                         reuse=reuse)
 
-                hidden = tf.nn.dropout(hidden, 0.9)
+                if training:
+                    hidden = tf.nn.dropout(hidden, 0.9)
 
     return hidden
 
