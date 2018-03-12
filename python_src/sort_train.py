@@ -136,8 +136,8 @@ def train():
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/28/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/28/validation")
+        train_writer = tf.summary.FileWriter("tmp/sort/29/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/29/validation")
         train_writer.add_graph(session.graph)
 
         saver = tf.train.Saver()
@@ -165,7 +165,7 @@ def train():
 
             if i % 100000 == 0:
                 print("Writing...")
-                saver.save(session, "tmp/sort/28/model.ckpt")
+                saver.save(session, "tmp/sort/29/model.ckpt")
 
 if __name__ == "__main__":
     train()

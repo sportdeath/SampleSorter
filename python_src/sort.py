@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
 
-UNITS_PER_LAYER = 100
+UNITS_PER_LAYER = 80
 LOCALIZATION_LAYERS = 2
 CLASSIFICATION_LAYERS = 4
 DROPOUT = 0.5
