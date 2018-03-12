@@ -12,7 +12,7 @@ Sampling was primarily an experimental form of music for many decades,
 making rare appearances on pop records such as The Beatle's [Revolution 9](https://www.youtube.com/watch?v=HWmvbxGpra4).
 Sampling broke into the mainstream the 80's with the advent of hip-hop and has become a staple of popular music ever since.
 
-In the early days of hip-hop one of the dominant sampling techniques was to combine a [drum break and a loop](https://www.youtube.com/watch?v=q7Ej8Te_35g)
+In the early days of hip-hop one of the dominant sampling techniques was to combine a [drum break and a loop](https://www.youtube.com/watch?v=q7Ej8Te_35g).
 With more advanced sampling technology like the MPC-3000 and eventually the computer and digital workstations many more styles developed.
 For example hip-hop pioneer
 [J-Dilla](https://www.youtube.com/watch?v=hXeywtmWKzU)
@@ -31,13 +31,13 @@ the process of finding groups of samples that can be played simultaneously is ex
 This is partly because two fundamental musical properties, tempo and pitch, are inherently linked.
 Lowering or raising the pitch of a song slows down or speeds up the tempo.
 If two samples do in fact have the same tempo and tuning 
-(measured in cents as the deviation from [A440](https://en.wikipedia.org/wiki/A440_(pitch_standard))),
+(tuning measured in cents as the deviation from [12-tone equal tempermant](https://en.wikipedia.org/wiki/Equal_temperament) with [A4 = 440hz](https://en.wikipedia.org/wiki/A440_(pitch_standard))),
 they might not be harmonically coherent.
-The samples could be in conflicting keys or modes.
+The samples could be in conflicting keys or modes, again greatly reducing the number valid sample pairs.
 Once a musician has finally found samples that have consistent rhythm and harmony,
 they then get to choose which samples should actually go together based on aesthetics and composition.
 
-This code works to make this process easier by automatically detecting which samples have the same tempo and tuning and then.
+This code works to make this process easier by automatically detecting which samples could be repitched to have the same tempo and tuning. Each of these pairs is then given a rating of how "harmonically coherent" it is using a classifier.
 
 It should be noted that a process called [time stretching](https://en.wikipedia.org/wiki/Audio_time_stretching_and_pitch_scaling) is able to change the speed of audio without affecting the pitch.
 However it necessitates windowing the audio which introduces digital artifacts particularly at transients.
@@ -45,7 +45,7 @@ Modern algorithms cover up most of these artifacts, but there is nevertheless so
 
 ## Problem Setup
 
-I have a collection of audio samples.
+I have a collection of audio samples in Ableton's (\*.alc file format)[https://help.ableton.com/hc/en-us/articles/209769625-Live-specific-file-types-adg-als-alp-] (a convenient way to make references to sections of audio).
 These are small (~3-30s long) snippets of music from a variety of genres; 
 soul, jazz, funk, rock, hip-hop, disco, electronic, experimental, etc.
 My own collection is not public due to copyright, 
@@ -67,6 +67,40 @@ Any pair of samples I choose to layer must abide by the following:
 
 For the purpose of this project, I only care about adjusting the relative speed and offset between samples.
 Mixing, filtering and adding effects is left to the musician.
+
+## Solution Description
+
+### Tempo
+
+Autocorrelation
+
+### Octave-Mapped Spectrogram
+
+#### Tuning
+
+### Classification
+
+Using the octave-mapped spectrogram as a compact profile of a sample's harmonic content,
+we can now classify pairs of samples as being harmonic or inharmonic.
+While throughout history many "[rules of harmony](https://en.wikipedia.org/wiki/Harmony#Historical_rules)" have been proposed, those rules are often broken and change over time. Moreover they would be extremely difficult to impliment consistently.
+Instead we take advantage of the fact that we already have a dataset of samples which are "harmonic".
+
+Using this dataset, classifying pairs of samples is a positive-unlabeled learning problem.
+All of the samples in the dataset are considered to be harmonic examples.
+We can combine any pair of these samples to create an unlabeled example.
+
+I have chosen to classify these samples using a multilayer fully connected neural network.
+Since the network has so many free parameters, PU-learning is prone to overfit so we use a non-negative loss function:
+
+[Latexed function]
+
+In addition we normalize all the inputs, add L2-regularization, batch normalization, and dropout to prevent overfitting. We also augment the data by rotating the octaves uniformly at random. To have better rotational invariance we employ a variant of the [spatial transoformer netowork](link).
+
+[GIF of octave transform]
+
+## Results
+
+[Examples of found pairs]
 
 ## Dependencies
 
