@@ -34,10 +34,12 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
             # Make the last layer linear
             activation = None
             activity_regularizer = None
+            kernel_regularizer = None
             if i < len(layer_units) - 1:
                 activation = tf.nn.relu
                 # activation = tf.nn.elu
-                activity_regularizer = tf.contrib.layers.l2_regularizer(scale=REGULARIZATION_SCALE)
+                # activity_regularizer = tf.contrib.layers.l2_regularizer(scale=REGULARIZATION_SCALE)
+                # kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=REGULARIZATION_SCALE)
 
             # Dense connection
             hidden = tf.layers.dense(
@@ -46,6 +48,7 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
                     activation=activation,
                     kernel_initializer=tf.contrib.layers.xavier_initializer(),
                     activity_regularizer=activity_regularizer,
+                    kernel_regularizer=kernel_regularizer,
                     name="dense_" + str(i),
                     reuse=reuse)
 
