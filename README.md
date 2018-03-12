@@ -23,7 +23,7 @@ It was popularized by The Avalanches in their masterpiece [Since I Left You](htt
 This technique involves layering many samples on top of each other.
 DJs employ a related technique called [harmonic mixing](https://en.wikipedia.org/wiki/Harmonic_mixing) to transition smoothly between different songs.
 Even though the samples are often untouched (no chopping or added effects), 
-the combination of different moods and genres and the context they are placed in creates an entirely new sound.
+the combination of different moods and genres and in which they are placed creates an entirely new sound.
 There is something incredibly moving and surreal in being able to take recordings from different genres, different decades, and different continents and realizing them as different parts of the same song.
 
 Despite its beauty, music made with this technique is rare, perhaps because of how difficult it is to create;
@@ -34,7 +34,7 @@ If two samples do in fact have the same tempo and tuning
 (tuning measured in cents as the deviation from [12-tone equal tempermant](https://en.wikipedia.org/wiki/Equal_temperament) with [A4 = 440hz](https://en.wikipedia.org/wiki/A440_(pitch_standard))),
 they might not be harmonically coherent.
 The samples could be in conflicting keys or modes, again greatly reducing the number valid sample pairs.
-Once a musician has finally found samples that have consistent rhythm and harmony,
+Once a musician has finally found samples that have consistent rhythm, tuning and harmony,
 they then get to choose which samples should actually go together based on aesthetics and composition.
 
 This code works to make this process easier by automatically detecting which samples could be repitched to have the same tempo and tuning. Each of these pairs is then given a rating of how "harmonically coherent" it is using a classifier.
@@ -42,10 +42,11 @@ This code works to make this process easier by automatically detecting which sam
 It should be noted that a process called [time stretching](https://en.wikipedia.org/wiki/Audio_time_stretching_and_pitch_scaling) is able to change the speed of audio without affecting the pitch.
 However it necessitates windowing the audio which introduces digital artifacts particularly at transients.
 Modern algorithms cover up most of these artifacts, but there is nevertheless something uncanny about time-stretched audio even for small changes in speed.
+Even more advanced algorithm's like the technology that exists in [Melodyne](https://en.wikipedia.org/wiki/Celemony_Software#DNA_Direct_Note_Access) allow for the pitches of individual notes within a single audio sample to be modified independenly; changing the internal harmony. But once again this can cause harsh digital artifacts.
 
 ## Problem Setup
 
-I have a collection of audio samples in Ableton's (\*.alc file format)[https://help.ableton.com/hc/en-us/articles/209769625-Live-specific-file-types-adg-als-alp-] (a convenient way to make references to sections of audio).
+I have a collection of audio samples in Ableton's [\*.alc file format](https://help.ableton.com/hc/en-us/articles/209769625-Live-specific-file-types-adg-als-alp-) (a convenient way to make references to sections of audio).
 These are small (~3-30s long) snippets of music from a variety of genres; 
 soul, jazz, funk, rock, hip-hop, disco, electronic, experimental, etc.
 My own collection is not public due to copyright, 
@@ -70,13 +71,37 @@ Mixing, filtering and adding effects is left to the musician.
 
 ## Solution Description
 
+To 
+![audio](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio.png)
+
 ### Tempo
 
-Autocorrelation
+To detect the tempo we first compute the 
+[onsets](https://en.wikipedia.org/wiki/Onset_(audio))
+of the audio using the complex-domain method described in
+[On the Use of Phase and Energy for Musical Onset Detection in the Complex Domain](https://www.researchgate.net/profile/Mark_Sandler2/publication/3343056_On_the_Use_of_Phase_and_Energy_for_Musical_Onset_Detection_in_the_Complex_Domain/links/5412b6110cf2bb7347dafd25/On-the-Use-of-Phase-and-Energy-for-Musical-Onset-Detection-in-the-Complex-Domain.pdf).
+The onset signal is high when there are changes in amplitude or frequency, which typically represent beats:
+
+![onset_energy](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/onset_energy.png)
+
+We then take the [autocorrelation](https://en.wikipedia.org/wiki/Autocorrelation) of the onset signal which reveals the periodic signal in the onsets:
+![onset_energy_autocorrelation](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/onset_energy_autocorrelation.png)
+
+The fourier transform of the autocorrelation is peaked around the tempo! We find the peak using the algorithm described in [Estimation of Frequency, Amplitude, and Phase from the DFT of a Time Series](https://pdfs.semanticscholar.org/df2e/2b3ae9d784e19ea0840f8bb26ff622b17c22.pdf):
+![onset_energy_autocorrelation_fft](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/onset_energy_autocorrelation_fft.png)
+
+We then fine tune the peak tempo by iterating over a small window around that value.
+In each iteration we perform a weighted sum of the onsets. The weights are low close to each beat, as determined by the tempo in that particular iteration (marked in blue below), and high away from them.
+By choosing the tempo that minimizes that sum, the tempo very clearly aligns with the onsets:
+![onset_energy_with_tempo](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/onset_energy_with_tempo.png)
 
 ### Octave-Mapped Spectrogram
 
-#### Tuning
+![audio_fft](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio_fft.png)
+![audio_filtered_fft](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio_filtered_fft.png)
+![octave](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/octave.png)
+![octave_tuned](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/octave_tuned.png)
+![octave_discretized](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/octave_discretized.png)
 
 ### Classification
 
