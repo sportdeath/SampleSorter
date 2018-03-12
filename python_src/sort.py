@@ -2,10 +2,10 @@ import numpy as np
 import tensorflow as tf
 
 UNITS_PER_LAYER = 100
-LOCALIZATION_LAYERS = 3
-CLASSIFICATION_LAYERS = 5
+LOCALIZATION_LAYERS = 2
+CLASSIFICATION_LAYERS = 4
 DROPOUT = 0.5
-REGULARIZATION_SCALE = 0.02
+REGULARIZATION_SCALE = 0.04
 
 def octave_classifier(batch_size, octave_length, name="octave_classifier", training=False, reuse=False):
     with tf.variable_scope(name):
