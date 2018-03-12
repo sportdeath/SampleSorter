@@ -2,8 +2,10 @@ import numpy as np
 import tensorflow as tf
 
 UNITS_PER_LAYER = 100
-LOCALIZATION_LAYERS = 4
-CLASSIFICATION_LAYERS = 7
+LOCALIZATION_LAYERS = 3
+CLASSIFICATION_LAYERS = 5
+DROPOUT = 0.5
+REGULARIZATION_SCALE = 0.02
 
 def octave_classifier(batch_size, octave_length, name="octave_classifier", training=False, reuse=False):
     with tf.variable_scope(name):
@@ -35,7 +37,7 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
             if i < len(layer_units) - 1:
                 activation = tf.nn.relu
                 # activation = tf.nn.elu
-                activity_regularizer = tf.contrib.layers.l2_regularizer(0.1)
+                activity_regularizer = tf.contrib.layers.l2_regularizer(scale=REGULARIZATION_SCALE)
 
             # Dense connection
             hidden = tf.layers.dense(
@@ -55,7 +57,7 @@ def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=Fals
                         reuse=reuse)
 
                 if training:
-                    hidden = tf.nn.dropout(hidden, 0.9)
+                    hidden = tf.nn.dropout(hidden, DROPOUT)
 
     return hidden
 

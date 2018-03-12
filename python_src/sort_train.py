@@ -78,7 +78,7 @@ def octave_classifier_sum(batch_size, octave_length, reuse=False, training=False
 
     # Add regularizer
     loss_regularizer = tf.reduce_mean(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-    loss = loss + 0.1 * loss_regularizer
+    loss = loss + loss_regularizer
 
     # Make summaries
     loss_positive_sum = tf.summary.scalar('loss_positive', loss_positive)
@@ -94,7 +94,17 @@ def octave_classifier_sum(batch_size, octave_length, reuse=False, training=False
     if training:
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            optimizer = tf.train.AdamOptimizer(0.0001).minimize(loss)
+            step = tf.Variable(0, trainable=False)
+            rate = tf.train.exponential_decay(
+                    learning_rate=0.0002,
+                    global_step=step,
+                    decay_steps=500000,
+                    decay_rate=0.7,
+                    staircase=True)
+            optimizer = tf.train.AdamOptimizer(rate).minimize(loss, global_step=step)
+            # optimizer = tf.keras.optimizers.Adam(lr=0.0001, amsgrad=True).get_updates(
+                    # loss=loss,
+                    # params=tf.trainable_variables())
 
     return summary, optimizer, batch_positive_ph, batch_negative_ph
 
@@ -125,9 +135,11 @@ def train():
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/18/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/18/validation")
+        train_writer = tf.summary.FileWriter("tmp/sort/24/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/24/validation")
         train_writer.add_graph(session.graph)
+
+        saver = tf.train.Saver()
 
         for i in range(100000000):
             # Make random positive and negative batches
@@ -149,6 +161,10 @@ def train():
                 train_writer.add_summary(train_summary_, i)
                 validation_writer.add_summary(validation_summary_, i)
                 print(i)
+
+            if i % 100000 == 0:
+                print("Writing...")
+                saver.save(session, "tmp/sort/24/model.ckpt")
 
 if __name__ == "__main__":
     train()
