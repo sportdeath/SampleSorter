@@ -7,12 +7,12 @@ class OctaveClassifier:
             activation=tf.nn.relu,
             octave_length=12,
             units_per_layer=80,
-            localization_layers=2,
-            classification_layers=4,
+            localization_layers=3,
+            classification_layers=5,
             dropout=1.,
-            expected_positive=0.5,
+            expected_positive=0.2,
             non_negative_tolerance=0.00,
-            learning_rate=0.0001):
+            learning_rate=0.0002):
 
         self.activation = activation
         self.octave_length = octave_length
@@ -50,9 +50,7 @@ class OctaveClassifier:
         with tf.variable_scope(name):
             # Regress the positive and unlabeled decisions
             loss_positive = tf.reduce_mean(tf.sigmoid(-decision_positive))
-            print("loss positive: ", loss_positive)
             loss_unlabeled = tf.reduce_mean(tf.sigmoid(decision_unlabeled))
-            print("loss unlabeled: ", loss_unlabeled)
 
             # Compute the negative loss
             loss_negative = loss_unlabeled - self.expected_positive * (1 - loss_positive)
@@ -62,7 +60,6 @@ class OctaveClassifier:
 
             # Sum the losses
             loss = (self.expected_positive * loss_positive) + loss_non_negative
-            # loss = loss_positive
 
             # Make summaries
             loss_positive_summary = tf.summary.scalar('loss_positive', loss_positive)
@@ -121,10 +118,11 @@ class OctaveClassifier:
                         reuse=reuse)
 
                 if i < len(layer_units) - 1:
+                    # Batch renorm
+                    # https://arxiv.org/pdf/1702.03275.pdf
                     hidden = tf.layers.batch_normalization(
                             hidden, 
-                            # training=training, 
-                            training=True,
+                            training=training, 
                             renorm=True,
                             name="bn_" + str(i), 
                             reuse=reuse)

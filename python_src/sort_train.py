@@ -68,7 +68,7 @@ def makeUnlabeledBatch(dataset, batch_size):
     return batch
 
 def train():
-    batch_size = 5
+    batch_size = 10
     force_reprocess = False
     user_library = "~/Documents/UserLibrary/"
     sample_library = "~/Documents/UserLibrary/SampleLibrary/"
@@ -83,9 +83,7 @@ def train():
     num_octaves = octaves.shape[0]
     num_train = int(num_octaves * 0.8)
     train_set = octaves[:num_train]
-    print(train_set.shape)
     validation_set = octaves[num_train:]
-    print(validation_set.shape)
 
     oc = OctaveClassifier()
     optimizer, summary, batch_positive_ph, batch_unlabeled_ph, training = oc.train(batch_size)
