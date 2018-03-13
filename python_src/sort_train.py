@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 
 from sample import Sample
-from sort import octave_classifier
+from sort import OctaveClassifier
 
 def getOctave(filepath, user_library, force_reprocess):
     s = Sample(filepath, user_library, force_reprocess)
@@ -33,15 +33,18 @@ def getOctaves(user_library, sample_library, force_reprocess):
     octaves = np.array(octaves)
     np.random.shuffle(octaves)
 
+    # mean = np.expand_dims(octaves.mean(axis=1), axis=1)
+    # std = np.expand_dims(octaves.std(axis=1), axis=1)
+    # octaves = (octaves - mean)/std
+    # octaves = 
+    norm = np.linalg.norm(octaves, axis=1)
+    octaves = octaves/norm[:,None]
+
     return octaves
 
 def makePositiveBatch(dataset, batch_size):
     random_sel = np.random.randint(dataset.shape[0], size=batch_size)
     batch = dataset[random_sel]
-
-    # Normalize each one
-    norm = np.linalg.norm(batch, axis=1)
-    batch = batch/norm[:,None]
 
     # Rotate each by a random amount
     rotations = np.random.randint(12, size=batch_size)
@@ -51,7 +54,7 @@ def makePositiveBatch(dataset, batch_size):
 
     return batch
 
-def makeNegativeBatch(dataset, batch_size):
+def makeUnlabeledBatch(dataset, batch_size):
     batch0 = makePositiveBatch(dataset, batch_size)
     batch1 = makePositiveBatch(dataset, batch_size)
 
@@ -64,53 +67,8 @@ def makeNegativeBatch(dataset, batch_size):
 
     return batch
 
-def octave_classifier_sum(batch_size, octave_length, reuse=False, training=False):
-    # Octave classifier
-    batch_positive_ph, decision_positive = octave_classifier(batch_size, octave_length, training=training, reuse=reuse)
-    batch_negative_ph, decision_negative = octave_classifier(batch_size, octave_length, training=training, reuse=True)
-
-    # Compute losses
-    pi_p = 0.5
-    beta = 0.01
-    loss_positive = tf.reduce_mean(tf.sigmoid(-decision_positive))
-    loss_unlabeled = tf.reduce_mean(tf.sigmoid(decision_negative))
-    loss = pi_p * loss_positive + tf.maximum(-beta, loss_unlabeled - pi_p * (1 - loss_positive))
-
-    # Add regularizer
-    # loss_regularizer = tf.reduce_mean(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES))
-    # loss = loss + loss_regularizer
-
-    # Make summaries
-    loss_positive_sum = tf.summary.scalar('loss_positive', loss_positive)
-    loss_unlabeled_sum = tf.summary.scalar('loss_unlabeled', loss_unlabeled)
-    # loss_regularizer_sum = tf.summary.scalar('loss_regularizer', loss_regularizer)
-    loss_sum = tf.summary.scalar('loss', loss)
-
-    # Merge the summaries
-    # summary = tf.summary.merge((loss_positive_sum, loss_unlabeled_sum, loss_regularizer_sum, loss_sum))
-    summary = tf.summary.merge((loss_positive_sum, loss_unlabeled_sum, loss_sum))
-
-    # Optimize
-    optimizer = None
-    if training:
-        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
-        with tf.control_dependencies(update_ops):
-            step = tf.Variable(0, trainable=False)
-            rate = tf.train.exponential_decay(
-                    learning_rate=0.0005,
-                    global_step=step,
-                    decay_steps=500000,
-                    decay_rate=0.7,
-                    staircase=True)
-            optimizer = tf.train.AdamOptimizer(rate).minimize(loss, global_step=step)
-            # optimizer = tf.keras.optimizers.Adam(lr=0.0001, amsgrad=True).get_updates(
-                    # loss=loss,
-                    # params=tf.trainable_variables())
-
-    return summary, optimizer, batch_positive_ph, batch_negative_ph
-
 def train():
-    batch_size = 10
+    batch_size = 5
     force_reprocess = False
     user_library = "~/Documents/UserLibrary/"
     sample_library = "~/Documents/UserLibrary/SampleLibrary/"
@@ -125,47 +83,51 @@ def train():
     num_octaves = octaves.shape[0]
     num_train = int(num_octaves * 0.8)
     train_set = octaves[:num_train]
+    print(train_set.shape)
     validation_set = octaves[num_train:]
+    print(validation_set.shape)
 
-    train_summary, optimizer, batch_positive_ph, batch_negative_ph = octave_classifier_sum(
-            batch_size, octave_length, training=True, reuse=False)
-    validation_summary, _, batch_positive_val_ph, batch_negative_val_ph = octave_classifier_sum(
-            batch_size, octave_length, training=False, reuse=True)
+    oc = OctaveClassifier()
+    optimizer, summary, batch_positive_ph, batch_unlabeled_ph, training = oc.train(batch_size)
 
     with tf.Session() as session:
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/29/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/29/validation")
+        train_writer = tf.summary.FileWriter("tmp/sort/32/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/32/validation")
         train_writer.add_graph(session.graph)
 
         saver = tf.train.Saver()
 
         for i in range(100000000):
-            # Make random positive and negative batches
+            # Make random positive and unlabeled batches
             batch_positive = makePositiveBatch(train_set, batch_size)
-            batch_negative = makeNegativeBatch(train_set, batch_size)
-            batch_positive_val = makePositiveBatch(validation_set, batch_size)
-            batch_negative_val = makeNegativeBatch(validation_set, batch_size)
+            batch_unlabeled = makeUnlabeledBatch(train_set, batch_size)
 
             feed_dict = {}
             feed_dict[batch_positive_ph] = batch_positive
-            feed_dict[batch_negative_ph] = batch_negative
-            feed_dict[batch_positive_val_ph] = batch_positive_val
-            feed_dict[batch_negative_val_ph] = batch_negative_val
-
-            session.run(optimizer, feed_dict=feed_dict)
+            feed_dict[batch_unlabeled_ph] = batch_unlabeled
+            feed_dict[training] = True
+            _, train_summary = session.run((optimizer, summary), feed_dict=feed_dict)
 
             if i % 100 == 0:
-                train_summary_, validation_summary_ = session.run((train_summary, validation_summary), feed_dict=feed_dict)
-                train_writer.add_summary(train_summary_, i)
-                validation_writer.add_summary(validation_summary_, i)
+                feed_dict={}
+                batch_positive_val = makePositiveBatch(validation_set, batch_size)
+                batch_unlabeled_val = makeUnlabeledBatch(validation_set, batch_size)
+                feed_dict[batch_positive_ph] = batch_positive_val
+                feed_dict[batch_unlabeled_ph] = batch_unlabeled_val
+                feed_dict[training] = False
+
+                validation_summary = session.run(summary, feed_dict=feed_dict)
+
+                train_writer.add_summary(train_summary, i)
+                validation_writer.add_summary(validation_summary, i)
                 print(i)
 
             if i % 100000 == 0:
                 print("Writing...")
-                saver.save(session, "tmp/sort/29/model.ckpt")
+                saver.save(session, "tmp/sort/32/model.ckpt")
 
 if __name__ == "__main__":
     train()

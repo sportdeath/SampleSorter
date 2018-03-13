@@ -1,178 +1,193 @@
 import numpy as np
 import tensorflow as tf
 
-UNITS_PER_LAYER = 80
-LOCALIZATION_LAYERS = 2
-CLASSIFICATION_LAYERS = 4
-DROPOUT = 0.5
-REGULARIZATION_SCALE = 0.04
+class OctaveClassifier:
+    def __init__(
+            self,
+            activation=tf.nn.relu,
+            octave_length=12,
+            units_per_layer=80,
+            localization_layers=2,
+            classification_layers=4,
+            dropout=1.,
+            expected_positive=0.5,
+            non_negative_tolerance=0.00,
+            learning_rate=0.0001):
 
-def octave_classifier(batch_size, octave_length, name="octave_classifier", training=False, reuse=False):
-    with tf.variable_scope(name):
-        octave = tf.placeholder(dtype=tf.float32, shape=[batch_size, octave_length])
+        self.activation = activation
+        self.octave_length = octave_length
+        self.localization_layers = [units_per_layer] * localization_layers + [self.octave_length]
+        self.classification_layers = [units_per_layer] * classification_layers + [1]
+        self.dropout = dropout
+        self.expected_positive = expected_positive
+        self.non_negative_tolerance = non_negative_tolerance
+        self.learning_rate = learning_rate
 
-        localization_layers = [UNITS_PER_LAYER] * LOCALIZATION_LAYERS + [octave_length]
-        choices = _dense_net(octave, localization_layers, "localization", reuse=reuse)
+    def train(self, batch_size, name="octave_classifier", reuse=False):
+        with tf.variable_scope(name, reuse=reuse):
+            # Make training placeholder
+            training = tf.placeholder(tf.bool)
 
-        transformed = _octave_rotate_disc(octave, choices)
+            # Construct classifier
+            batch_positive_ph, decision_positive = self._construct(batch_size, training=training, reuse=False)
+            batch_unlabeled_ph, decision_unlabeled = self._construct(batch_size, training=training, reuse=True)
 
-        classification_layers = [UNITS_PER_LAYER] * CLASSIFICATION_LAYERS + [1]
-        decision = _dense_net(transformed, classification_layers, "classification", reuse=reuse)
+            # Compute losses
+            loss, loss_summaries = self._loss(decision_positive, decision_unlabeled)
 
-    return octave, decision
+            # Optimize
+            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) # For batch norm
+            with tf.control_dependencies(update_ops):
+                optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
 
-def _dense_net(input_, layer_units, name="dense_net", reuse=False, training=False):
-    """
-    Make a dense neural net where each layer is an entry in
-    layer_units. All but the last layer includes a nonlinearity.
-    """
-    hidden = input_
+        return optimizer, loss_summaries, batch_positive_ph, batch_unlabeled_ph, training
 
-    with tf.variable_scope(name):
+    def _loss(self, decision_positive, decision_unlabeled, name="loss"):
+        """
+        Compute the non-negative loss as described in
+        https://arxiv.org/abs/1703.00593
+        """
+        with tf.variable_scope(name):
+            # Regress the positive and unlabeled decisions
+            loss_positive = tf.reduce_mean(tf.sigmoid(-decision_positive))
+            print("loss positive: ", loss_positive)
+            loss_unlabeled = tf.reduce_mean(tf.sigmoid(decision_unlabeled))
+            print("loss unlabeled: ", loss_unlabeled)
 
-        for i, num_units in enumerate(layer_units):
-            # Make the last layer linear
-            activation = None
-            activity_regularizer = None
-            kernel_regularizer = None
-            if i < len(layer_units) - 1:
-                activation = tf.nn.relu
-                # activation = tf.nn.elu
-                # activity_regularizer = tf.contrib.layers.l2_regularizer(scale=REGULARIZATION_SCALE)
-                # kernel_regularizer = tf.contrib.layers.l2_regularizer(scale=REGULARIZATION_SCALE)
+            # Compute the negative loss
+            loss_negative = loss_unlabeled - self.expected_positive * (1 - loss_positive)
 
-            # Dense connection
-            hidden = tf.layers.dense(
-                    inputs=hidden,
-                    units=num_units,
-                    activation=activation,
-                    kernel_initializer=tf.contrib.layers.xavier_initializer(),
-                    activity_regularizer=activity_regularizer,
-                    kernel_regularizer=kernel_regularizer,
-                    name="dense_" + str(i),
-                    reuse=reuse)
+            # Take the maximum so the negative loss is non negative
+            loss_non_negative = tf.maximum(-self.non_negative_tolerance, loss_negative)
 
-            if i < len(layer_units) - 1:
-                hidden = tf.layers.batch_normalization(
-                        hidden, 
-                        training=training, 
-                        name="bn_" + str(i), 
+            # Sum the losses
+            loss = (self.expected_positive * loss_positive) + loss_non_negative
+            # loss = loss_positive
+
+            # Make summaries
+            loss_positive_summary = tf.summary.scalar('loss_positive', loss_positive)
+            loss_unlabeled_summary = tf.summary.scalar('loss_unlabeled', loss_unlabeled)
+            loss_negative_summary = tf.summary.scalar('loss_negative', loss_negative)
+            loss_non_negative_summary = tf.summary.scalar('loss_non_negative', loss_non_negative)
+            loss_summary = tf.summary.scalar('loss', loss)
+
+            # Merge the summaries
+            loss_summaries = tf.summary.merge((
+                loss_positive_summary, 
+                loss_unlabeled_summary, 
+                loss_negative_summary,
+                loss_non_negative_summary,
+                loss_summary))
+
+        return loss, loss_summaries
+
+    def _construct(self, batch_size, training, name="construct", reuse=False):
+        with tf.variable_scope(name, reuse=reuse):
+            octave = tf.placeholder(dtype=tf.float32, shape=[batch_size, self.octave_length])
+
+            # Determine how the octave should be rotated
+            choices = self._dense_net(octave, self.localization_layers, training, "localization", reuse=reuse)
+            
+            # Rotate the octave
+            transformed = self._octave_rotate_disc(octave, choices)
+
+            # Classify the octave
+            decision = self._dense_net(transformed, self.classification_layers, training, "classification", reuse=reuse)
+
+        return octave, decision
+
+    def _dense_net(self, input_, layer_units, training, name="dense_net", reuse=False):
+        """
+        Make a dense neural net where each layer is an entry in
+        layer_units. All but the last layer includes a nonlinearity.
+        """
+        hidden = input_
+
+        with tf.variable_scope(name, reuse=reuse):
+
+            for i, num_units in enumerate(layer_units):
+                # Make the last layer linear
+                activation = None
+                if i < len(layer_units) - 1:
+                    activation = self.activation
+
+                # Dense connection
+                hidden = tf.layers.dense(
+                        inputs=hidden,
+                        units=num_units,
+                        activation=activation,
+                        kernel_initializer=tf.contrib.layers.xavier_initializer(),
+                        name="dense_" + str(i),
                         reuse=reuse)
 
-                if training:
-                    hidden = tf.nn.dropout(hidden, DROPOUT)
+                if i < len(layer_units) - 1:
+                    hidden = tf.layers.batch_normalization(
+                            hidden, 
+                            # training=training, 
+                            training=True,
+                            renorm=True,
+                            name="bn_" + str(i), 
+                            reuse=reuse)
 
-    return hidden
+                    # dropout = tf.where(training, self.dropout, 1)
+                    # hidden = tf.nn.dropout(hidden, dropout)
 
-def _octave_rotate_disc(octave, choices, name="octave_rotate_disc"):
-    with tf.variable_scope(name):
-        # Extract the shape
-        octave_shape = octave.get_shape().as_list()
-        batch_size = octave_shape[0]
-        octave_length = octave_shape[1]
+        return hidden
 
-        # Make the indices that will rotate each octave
-        # by each possible integer
-        indices = []
-        for i in range(octave_length):
-            indices.append(np.roll(np.arange(octave_length), -i))
-        indices = np.array(indices)
-        # [ 0  1 ... 11 12]
-        # [ 1  2 ... 11  0]
-        #        ...
-        # [12  0 ... 10 11]
-        indices = np.expand_dims(indices, axis=0)
-        indices = np.tile(indices, (batch_size, 1, 1))
+    def _octave_rotate_disc(self, octave, choices, name="octave_rotate_disc"):
+        with tf.variable_scope(name):
+            # Extract the shape
+            octave_shape = octave.get_shape().as_list()
+            batch_size = octave_shape[0]
+            octave_length = octave_shape[1]
 
-        batch = np.arange(batch_size)
-        batch = np.expand_dims(np.expand_dims(batch, axis=-1), axis=-1)
-        batch = np.tile(batch, (1, octave_length, octave_length))
+            # Make the indices that will rotate each octave
+            # by each possible integer
+            indices = []
+            for i in range(octave_length):
+                indices.append(np.roll(np.arange(octave_length), -i))
+            indices = np.array(indices)
+            # [ 0  1 ... 11 12]
+            # [ 1  2 ... 11  0]
+            #        ...
+            # [12  0 ... 10 11]
+            indices = np.expand_dims(indices, axis=0)
+            indices = np.tile(indices, (batch_size, 1, 1))
 
-        # Stack them
-        indices = np.stack((batch, indices), axis=-1)
+            batch = np.arange(batch_size)
+            batch = np.expand_dims(np.expand_dims(batch, axis=-1), axis=-1)
+            batch = np.tile(batch, (1, octave_length, octave_length))
 
-        # Convert to tf
-        indices = tf.constant(indices, tf.int32)
+            # Stack them
+            indices = np.stack((batch, indices), axis=-1)
 
-        # Rotate each octave
-        octave_rotations = tf.gather_nd(octave, indices)
+            # Convert to tf
+            indices = tf.constant(indices, tf.int32)
 
-        # Make the choices
-        choices = tf.nn.softmax(choices)
-        choices = tf.expand_dims(choices, axis=-1)
-        choices = tf.tile(choices, (1, 1, octave_length))
-        octave_rotated = octave_rotations * choices
+            # Rotate each octave
+            octave_rotations = tf.gather_nd(octave, indices)
 
-        # Sum the choices
-        octave_rotated = tf.reduce_sum(octave_rotated, axis=1)
+            # Make the choices
+            choices = tf.nn.softmax(choices)
+            choices = tf.expand_dims(choices, axis=-1)
+            choices = tf.tile(choices, (1, 1, octave_length))
+            octave_rotated = octave_rotations * choices
 
-        return octave_rotated
+            # Sum the choices
+            octave_rotated = tf.reduce_sum(octave_rotated, axis=1)
 
+            return octave_rotated
 
-def _octave_rotate(octave, angle, name="octave_rotate"):
-    """
-    Bilinearly rotate the octave by the angle.
-    """
+    def _test_octave_rotate_disc(self):
+        octave = tf.constant(
+                [[1, 2, 3, 4, 5],
+                 [5, 4, 3, 2, 1]], tf.float32)
 
-    with tf.variable_scope(name):
-        # Extract the shape
-        octave_shape = octave.get_shape().as_list()
-        batch_size = octave_shape[0]
-        octave_length = octave_shape[1]
+        choices = tf.constant(
+                [[10., 1., 2., 5., 1.],
+                 [1.0, 7., 1., 20., 1.]], tf.float32)
 
-        # Compute the displacement from the angle
-        displacement = (angle * octave_length)/(2 * np.pi)
-
-        # Establish basic indices
-        indices = tf.range(octave_length, dtype=tf.float32) + displacement
-        indices = tf.mod(indices, octave_length)
-
-        # Add the diplacement to the indices
-        indices_f = tf.floor(indices)
-        indices_c = tf.mod(indices_f + 1, octave_length)
-        # Compute bilinear interpolation weights
-        weight_c = indices - indices_f
-        weight_f = 1 - weight_c
-        # Convert to int
-        indices_f = tf.cast(indices_f, tf.int32)
-        indices_c = tf.cast(indices_c, tf.int32)
-
-        # Add batch to the indices
-        batch = tf.expand_dims(tf.range(batch_size, dtype=tf.int32), axis=-1)
-        batch = tf.tile(batch, [1, octave_length])
-        indices_f = tf.stack((batch, indices_f), axis=-1)
-        indices_c = tf.stack((batch, indices_c), axis=-1)
-
-        # Displace and interpolate
-        octave_out = weight_f * tf.gather_nd(octave, indices_f) + \
-                     weight_c * tf.gather_nd(octave, indices_c)
-
-    return octave_out
-
-def _test_octave_rotate(batch_size, octave_length):
-    # Each octave in the batch is [0..11]
-    octave = tf.expand_dims(tf.range(octave_length, dtype=tf.float32), 0)
-    octave = tf.tile(octave, [batch_size, 1])
-    print("Octave:\n", tf.Session().run(octave))
-
-    # The angles are [[0...2Pi]]
-    angle = tf.range(batch_size, dtype=tf.float32)
-    angle = angle * (2 * np.pi)/batch_size
-    angle = tf.expand_dims(angle, axis=-1)
-    print("Angle:\n", tf.Session().run(angle))
-
-    out = _octave_rotate(octave, angle)
-    print("Rotation:\n", tf.Session().run(out))
-
-def _test_octave_rotate_disc():
-    octave = tf.constant(
-            [[1, 2, 3, 4, 5],
-             [5, 4, 3, 2, 1]], tf.float32)
-
-    choices = tf.constant(
-            [[10., 1., 2., 5., 1.],
-             [1.0, 7., 1., 20., 1.]], tf.float32)
-    _octave_rotate_disc(octave, choices)
+        _octave_rotate_disc(octave, choices)
 
 if __name__=="__main__":
     _test_octave_rotate_disc()
