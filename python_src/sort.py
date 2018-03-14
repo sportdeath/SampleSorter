@@ -6,11 +6,11 @@ class OctaveClassifier:
             self,
             activation=tf.nn.relu,
             octave_length=12,
-            units_per_layer=80,
-            localization_layers=2,
-            classification_layers=4,
-            dropout=1.,
-            expected_positive=0.25,
+            units_per_layer=100,
+            localization_layers=3,
+            classification_layers=5,
+            dropout=0.8,
+            expected_positive=0.5,
             non_negative_tolerance=0.,
             learning_rate=0.0005):
 
@@ -23,34 +23,37 @@ class OctaveClassifier:
         self.non_negative_tolerance = non_negative_tolerance
         self.learning_rate = learning_rate
 
-    def train(self, batch_size, name="octave_classifier", reuse=False):
-        with tf.variable_scope(name, reuse=reuse):
-            # Make training placeholder
-            training = tf.placeholder(tf.bool)
+    def construct_with_loss(self, batch_size, reuse=False):
+        # Make training placeholder
+        training = tf.placeholder(tf.bool)
 
-            # Construct classifier
-            batch_positive_ph, decision_positive, summaries0 = self._construct(batch_size, training=training, reuse=False)
-            batch_unlabeled_ph, decision_unlabeled, summaries1 = self._construct(batch_size, training=training, reuse=True)
+        # Construct classifier
+        batch_ph, decision, summaries = self.construct(batch_size, training=training, reuse=reuse)
 
-            summaries = summaries0 + summaries1
-            summaries = tf.summary.merge(summaries)
+        summaries = tf.summary.merge(summaries)
 
-            # Compute losses
-            loss, loss_summaries = self._loss(decision_positive, decision_unlabeled)
+        # Compute losses
+        loss, loss_summaries = self.loss(decision)
 
-            # Optimize
-            update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) # For batch norm
-            with tf.control_dependencies(update_ops):
-                optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
+        # Optimize
+        update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS) # For batch norm
+        with tf.control_dependencies(update_ops):
+            optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
 
-        return optimizer, loss_summaries, batch_positive_ph, batch_unlabeled_ph, training, summaries
+        return optimizer, loss_summaries, batch_ph, training, summaries
 
-    def _loss(self, decision_positive, decision_unlabeled, name="loss"):
+    def loss(self, decision, name="octave_classifier_loss"):
         """
         Compute the non-negative loss as described in
         https://arxiv.org/abs/1703.00593
         """
         with tf.variable_scope(name):
+            batch_size = decision.get_shape().as_list()[0]
+            positive_size = int(batch_size/2)
+
+            decision_positive = decision[:positive_size]
+            decision_unlabeled = decision[positive_size:]
+
             # Regress the positive and unlabeled decisions
             loss_positive = tf.reduce_mean(tf.sigmoid(-decision_positive))
             loss_unlabeled = tf.reduce_mean(tf.sigmoid(decision_unlabeled))
@@ -81,9 +84,9 @@ class OctaveClassifier:
 
         return loss, loss_summaries
 
-    def _construct(self, batch_size, training, name="construct", reuse=False):
+    def construct(self, batch_size, training, name="octave_classifier", reuse=False):
         with tf.variable_scope(name, reuse=reuse):
-            octave = tf.placeholder(dtype=tf.float32, shape=[batch_size, self.octave_length])
+            octave = tf.placeholder(dtype=tf.float32, shape=[2 * batch_size, self.octave_length])
 
             # Determine how the octave should be rotated
             choices, summaries0 = self._dense_net(octave, self.localization_layers, training, "localization", reuse=reuse)
@@ -135,14 +138,14 @@ class OctaveClassifier:
                     # https://arxiv.org/pdf/1702.03275.pdf
                     hidden = tf.layers.batch_normalization(
                             hidden, 
-                            # training=training, 
-                            training=True,
+                            training=training, 
                             name="bn_" + str(i), 
+                            renorm=True,
                             fused=True,
                             reuse=reuse)
 
-                    # dropout = tf.where(training, self.dropout, 1)
-                    # hidden = tf.nn.dropout(hidden, dropout)
+                    dropout = tf.where(training, self.dropout, 1)
+                    hidden = tf.nn.dropout(hidden, dropout)
 
         return hidden, summaries
 

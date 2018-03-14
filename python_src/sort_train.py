@@ -67,6 +67,14 @@ def makeUnlabeledBatch(dataset, batch_size):
 
     return batch
 
+def makeBatch(dataset, batch_size):
+    positive_batch = makePositiveBatch(dataset, batch_size)
+    unlabeled_batch = makeUnlabeledBatch(dataset, batch_size)
+
+    batch = np.concatenate((positive_batch, unlabeled_batch))
+
+    return batch
+
 def train():
     batch_size = 10
     force_reprocess = False
@@ -86,37 +94,33 @@ def train():
     validation_set = octaves[num_train:]
 
     oc = OctaveClassifier()
-    optimizer, summary, batch_positive_ph, batch_unlabeled_ph, training, summaries = oc.train(batch_size)
+    optimizer, summary, batch_ph, training, summaries = oc.construct_with_loss(batch_size)
 
     with tf.Session() as session:
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/33/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/33/validation")
-        bn_writer = tf.summary.FileWriter("tmp/sort/33/bn")
+        train_writer = tf.summary.FileWriter("tmp/sort/36/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/36/validation")
+        bn_writer = tf.summary.FileWriter("tmp/sort/36/bn")
         train_writer.add_graph(session.graph)
 
         saver = tf.train.Saver()
 
         for i in range(100000000):
             # Make random positive and unlabeled batches
-            batch_positive = makePositiveBatch(train_set, batch_size)
-            batch_unlabeled = makeUnlabeledBatch(train_set, batch_size)
+            batch = makeBatch(train_set, batch_size)
 
             feed_dict = {}
-            feed_dict[batch_positive_ph] = batch_positive
-            feed_dict[batch_unlabeled_ph] = batch_unlabeled
+            feed_dict[batch_ph] = batch
             feed_dict[training] = True
 
             _, train_summary, bn_summaries = session.run((optimizer, summary, summaries), feed_dict=feed_dict)
 
             if i % 100 == 0:
                 feed_dict={}
-                batch_positive_val = makePositiveBatch(validation_set, batch_size)
-                batch_unlabeled_val = makeUnlabeledBatch(validation_set, batch_size)
-                feed_dict[batch_positive_ph] = batch_positive_val
-                feed_dict[batch_unlabeled_ph] = batch_unlabeled_val
+                batch_val = makeBatch(validation_set, batch_size)
+                feed_dict[batch_ph] = batch_val
                 feed_dict[training] = False
 
                 validation_summary, validation_bn_summaries = session.run((summary, summaries), feed_dict=feed_dict)
@@ -129,7 +133,7 @@ def train():
 
             if i % 100000 == 0:
                 print("Writing...")
-                saver.save(session, "tmp/sort/33/model.ckpt")
+                saver.save(session, "tmp/sort/36/model.ckpt")
 
 if __name__ == "__main__":
     train()
