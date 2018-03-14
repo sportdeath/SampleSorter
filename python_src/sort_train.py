@@ -86,14 +86,15 @@ def train():
     validation_set = octaves[num_train:]
 
     oc = OctaveClassifier()
-    optimizer, summary, batch_positive_ph, batch_unlabeled_ph, training = oc.train(batch_size)
+    optimizer, summary, batch_positive_ph, batch_unlabeled_ph, training, summaries = oc.train(batch_size)
 
     with tf.Session() as session:
         session.run(tf.local_variables_initializer())
         session.run(tf.global_variables_initializer())
 
-        train_writer = tf.summary.FileWriter("tmp/sort/32/train")
-        validation_writer = tf.summary.FileWriter("tmp/sort/32/validation")
+        train_writer = tf.summary.FileWriter("tmp/sort/33/train")
+        validation_writer = tf.summary.FileWriter("tmp/sort/33/validation")
+        bn_writer = tf.summary.FileWriter("tmp/sort/33/bn")
         train_writer.add_graph(session.graph)
 
         saver = tf.train.Saver()
@@ -107,7 +108,8 @@ def train():
             feed_dict[batch_positive_ph] = batch_positive
             feed_dict[batch_unlabeled_ph] = batch_unlabeled
             feed_dict[training] = True
-            _, train_summary = session.run((optimizer, summary), feed_dict=feed_dict)
+
+            _, train_summary, bn_summaries = session.run((optimizer, summary, summaries), feed_dict=feed_dict)
 
             if i % 100 == 0:
                 feed_dict={}
@@ -117,15 +119,17 @@ def train():
                 feed_dict[batch_unlabeled_ph] = batch_unlabeled_val
                 feed_dict[training] = False
 
-                validation_summary = session.run(summary, feed_dict=feed_dict)
+                validation_summary, validation_bn_summaries = session.run((summary, summaries), feed_dict=feed_dict)
 
                 train_writer.add_summary(train_summary, i)
+                train_writer.add_summary(bn_summaries, i)
                 validation_writer.add_summary(validation_summary, i)
+                validation_writer.add_summary(validation_bn_summaries, i)
                 print(i)
 
             if i % 100000 == 0:
                 print("Writing...")
-                saver.save(session, "tmp/sort/32/model.ckpt")
+                saver.save(session, "tmp/sort/33/model.ckpt")
 
 if __name__ == "__main__":
     train()
