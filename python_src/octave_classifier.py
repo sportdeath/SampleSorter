@@ -28,9 +28,7 @@ class OctaveClassifier:
         training = tf.placeholder(tf.bool)
 
         # Construct classifier
-        batch_ph, decision, summaries = self.construct(batch_size, training=training, reuse=reuse)
-
-        summaries = tf.summary.merge(summaries)
+        batch_ph, decision = self.construct(batch_size, training=training, reuse=reuse)
 
         # Compute losses
         loss, loss_summaries = self.loss(decision)
@@ -40,7 +38,7 @@ class OctaveClassifier:
         with tf.control_dependencies(update_ops):
             optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
 
-        return optimizer, loss_summaries, batch_ph, training, summaries
+        return optimizer, loss_summaries, batch_ph, training
 
     def loss(self, decision, name="octave_classifier_loss"):
         """
@@ -89,17 +87,15 @@ class OctaveClassifier:
             octave = tf.placeholder(dtype=tf.float32, shape=[2 * batch_size, self.octave_length])
 
             # Determine how the octave should be rotated
-            choices, summaries0 = self._dense_net(octave, self.localization_layers, training, "localization", reuse=reuse)
+            choices = self._dense_net(octave, self.localization_layers, training, "localization", reuse=reuse)
             
             # Rotate the octave
             transformed = self._octave_rotate_disc(octave, choices)
 
             # Classify the octave
-            decision, summaries1 = self._dense_net(transformed, self.classification_layers, training, "classification", reuse=reuse)
+            decision = self._dense_net(transformed, self.classification_layers, training, "classification", reuse=reuse)
 
-            summaries = summaries0 + summaries1
-
-        return octave, decision, summaries
+        return octave, decision
 
     def _dense_net(self, input_, layer_units, training, name="dense_net", reuse=False):
         """
@@ -109,8 +105,6 @@ class OctaveClassifier:
         hidden = input_
 
         with tf.variable_scope(name, reuse=reuse):
-
-            summaries = []
 
             for i, num_units in enumerate(layer_units):
                 # Make the last layer linear
@@ -127,12 +121,6 @@ class OctaveClassifier:
                         name="dense_" + str(i),
                         reuse=reuse)
 
-                mean, variance = tf.nn.moments(hidden, [0])
-                mean_summary = tf.summary.histogram('mean_' + str(i), mean)
-                variance_summary = tf.summary.histogram('variance_' + str(i), variance)
-                summaries.append(mean_summary)
-                summaries.append(variance_summary)
-
                 if i < len(layer_units) - 1:
                     # Batch renorm
                     # https://arxiv.org/pdf/1702.03275.pdf
@@ -144,10 +132,11 @@ class OctaveClassifier:
                             fused=True,
                             reuse=reuse)
 
+                    # Dropout only if training
                     dropout = tf.where(training, self.dropout, 1)
                     hidden = tf.nn.dropout(hidden, dropout)
 
-        return hidden, summaries
+        return hidden
 
     def _octave_rotate_disc(self, octave, choices, name="octave_rotate_disc"):
         with tf.variable_scope(name):
