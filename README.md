@@ -3,22 +3,11 @@
 This code analyzes a library of audio samples and determines each sample's tempo, tuning, and harmonic profile.
 Using these values we determine pairs of samples that, when played at particular speeds, 
 have the same tempo, have the same tuning and are harmonically coherent.
-It is intended as a compositional tool in making sample-based music.
+It is intended as a compositional tool for making sample-based music.
 
 ## Motivation
 
-Musicians began making compositions out of other recordings as early as the 40's with the development of [musique concrete](https://en.wikipedia.org/wiki/Musique_concr%C3%A8te).
-Sampling was primarily an experimental form of music for many decades, 
-making rare appearances on pop records such as The Beatle's [Revolution 9](https://www.youtube.com/watch?v=HWmvbxGpra4).
-Sampling broke into the mainstream the 80's with the advent of hip-hop and has become a staple of popular music ever since.
-
-In the early days of hip-hop one of the dominant sampling techniques was to combine a [drum break and a loop](https://www.youtube.com/watch?v=q7Ej8Te_35g).
-With more advanced sampling technology like the MPC-3000 and eventually the computer and digital workstations many more styles developed.
-For example hip-hop pioneer
-[J-Dilla](https://www.youtube.com/watch?v=hXeywtmWKzU)
-developed a style that involved [chopping](https://en.wikipedia.org/wiki/Chopping_(sampling_technique)) up samples and rearranging the pieces.
-
-The sampling technique this work serves to aid is sometimes known as "[plunderphonics](https://en.wikipedia.org/wiki/Plunderphonics)" or a "sound collage".
+The [sampling](https://en.wikipedia.org/wiki/Sampling_(music)) technique this work serves to aid is sometimes known as "[plunderphonics](https://en.wikipedia.org/wiki/Plunderphonics)" or a "sound collage".
 It was popularized by The Avalanches in their masterpiece [Since I Left You](https://www.youtube.com/watch?v=LhBacKKEyBU).
 This technique involves layering many samples on top of each other.
 DJs employ a related technique called [harmonic mixing](https://en.wikipedia.org/wiki/Harmonic_mixing) to transition smoothly between different songs.
@@ -37,14 +26,14 @@ The samples could be in conflicting keys or modes, again greatly reducing the nu
 Once a musician has finally found samples that have consistent rhythm, tuning and harmony,
 they then get to choose which samples should actually go together based on aesthetics and composition.
 
-This code works to make this process easier by automatically detecting which samples could be repitched to have the same tempo and tuning. Each of these pairs is then given a rating of how "harmonically coherent" it is using a classifier.
-
 It should be noted that a process called [time stretching](https://en.wikipedia.org/wiki/Audio_time_stretching_and_pitch_scaling) is able to change the speed of audio without affecting the pitch.
 However it necessitates windowing the audio which introduces digital artifacts particularly at transients.
 Modern algorithms cover up most of these artifacts, but there is nevertheless something uncanny about time-stretched audio even for small changes in speed.
-Even more advanced algorithm's like the technology that exists in [Melodyne](https://en.wikipedia.org/wiki/Celemony_Software#DNA_Direct_Note_Access) allow for the pitches of individual notes within a single audio sample to be modified independenly; changing the internal harmony. But once again this can cause harsh digital artifacts.
+Even more advanced algorithm's like the technology that exists in the commericial software [Melodyne](https://en.wikipedia.org/wiki/Celemony_Software#DNA_Direct_Note_Access) allow for the pitches of individual notes within a single audio sample to be modified independenly; changing the internal harmony. But once again this can cause harsh digital artifacts.
 
-## Problem Setup
+## Solution Overview
+
+This code works to make the sampling process easier by automatically detecting pairs of samples that can be played at the same time and still sound "musical".
 
 I have a collection of audio samples in Ableton's [\*.alc file format](https://help.ableton.com/hc/en-us/articles/209769625-Live-specific-file-types-adg-als-alp-) (a convenient way to make references to sections of audio).
 These are small (~3-30s long) snippets of music from a variety of genres; 
@@ -52,26 +41,23 @@ soul, jazz, funk, rock, hip-hop, disco, electronic, experimental, etc.
 My own collection is not public due to copyright, 
 but there is a large online database of the samples used in popular music at [WhoSampled.com](https://www.whosampled.com/most-sampled-tracks/)
 
-I want to be able to layer these samples to create new music.
-To layer sounds I can do any of the following:
+Each of these samples is analyzed using spectral analysis to determine it's tempo, tuning and harmonic profile. The harmonic profile encodes how prevalent each of the [12 notes](https://en.wikipedia.org/wiki/Equal_temperament) is in the sample. Since there is a closed-form relation between tempo and pitch, we can easily determine which pairs of samples can be repitched to have the same tempo and still be in tune. A song with tempo 
+![tempo_1](https://latex.codecogs.com/gif.latex?\tau_1)
+needs to be retuned by 
+![tuning](https://latex.codecogs.com/gif.latex?\delta_{12})
+[cents](https://en.wikipedia.org/wiki/Cent_(music)) in order to have tempo
+![tempo_1](https://latex.codecogs.com/gif.latex?\tau_2):
 
-- Adjust the speed at which the samples are played. This affects both the pitch and tempo.
-- Choose when each sample begins to play.
-- Adjust the volume of each sample.
-- Add filters and effects to each sample.
+![tuning_equation](https://latex.codecogs.com/gif.latex?\delta_{12}=1200\cdot\log_2\left(\frac{\tau_2}{\tau_1}\right))
 
-Any pair of samples I choose to layer must abide by the following:
+So long as the tuning is approximately an integer number of [semitones](https://en.wikipedia.org/wiki/Semitone),
+![tempo_1](https://latex.codecogs.com/gif.latex?\left|\delta_{12}\right|\mod{50}<\epsilon),
+then the pair is "in tune."
 
-- The samples need to have the same tempo.
-- The samples need to be in tune.
-- The combination must sound "musical".
-
-For the purpose of this project, I only care about adjusting the relative speed and offset between samples.
-Mixing, filtering and adding effects is left to the musician.
+The harmonic profiles of these tuned sample pairs are combined and fed into a classifier which rates them based on how harmonically coherent they are. For example a profile which is dominated by the notes "C" "E" and "G" (a major chord) would be labeled "coherent", where as a profile where all the notes have equal weight would be labeled "incoherent". The classifier, which is a fully connected neural network, is trained on the sample collection itself using positive unlabeled learning.
 
 ## Solution Description
 
-To 
 ![audio](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio.png)
 
 ### Tempo
