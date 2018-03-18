@@ -22,7 +22,7 @@ Lowering or raising the pitch of a song slows down or speeds up the tempo.
 If two samples do in fact have the same tempo and tuning 
 (tuning measured in cents as the deviation from [12-tone equal tempermant](https://en.wikipedia.org/wiki/Equal_temperament) with [A4 = 440hz](https://en.wikipedia.org/wiki/A440_(pitch_standard))),
 they might not be harmonically coherent.
-The samples could be in conflicting keys or modes, again greatly reducing the number valid sample pairs.
+For example the samples could be in conflicting [keys](https://en.wikipedia.org/wiki/Key_(music)) or [modes](https://en.wikipedia.org/wiki/Mode_(music)), again greatly reducing the number valid sample pairs.
 Once a musician has finally found samples that have consistent rhythm, tuning and harmony,
 they then get to choose which samples should actually go together based on aesthetics and composition.
 
