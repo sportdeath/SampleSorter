@@ -95,7 +95,7 @@ Then we filter the audio using an [https://en.wikipedia.org/wiki/A-weighting](ht
 We then use the peak picking described in [Estimation of Frequency, Amplitude, and Phase from the DFT of a Time Series](https://pdfs.semanticscholar.org/df2e/2b3ae9d784e19ea0840f8bb26ff622b17c22.pdf) and accumulate these peaks in a histogram with the frequencies wrapped to an octave.
 Since the frequency doubles in each octave, the placement in the octave on a scale from 0 to 1 is:
 
-![octave](https://latex.codecogs.com/gif.latex?\log_2\left(\frac{f}{440})\mod{1}\right)
+![octave](https://latex.codecogs.com/gif.latex?\log_2\left(\frac{f}{440}\right)\mod{1})
 
 On a scale from 0 to 11 (the 12 notes in an octave), our octave looks like:
 
