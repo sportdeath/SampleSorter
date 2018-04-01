@@ -51,12 +51,13 @@ needs to be retuned by
 ![tuning_equation](https://latex.codecogs.com/gif.latex?\delta_{12}=1200\cdot\log_2\left(\frac{\tau_2}{\tau_1}\right))
 
 So long as the tuning is approximately an integer number of [semitones](https://en.wikipedia.org/wiki/Semitone),
-![tempo_1](https://latex.codecogs.com/gif.latex?\left|\delta_{12}\right|\mod{50}<\epsilon),
 then the pair is "in tune."
 
 The harmonic profiles of these tuned sample pairs are combined and fed into a classifier which rates them based on how harmonically coherent they are. For example a profile which is dominated by the notes "C" "E" and "G" (a major chord) would be labeled "coherent", where as a profile where all the notes have equal weight would be labeled "incoherent". The classifier, which is a fully connected neural network, is trained on the sample collection itself using positive unlabeled learning.
 
 ## Solution Description
+
+A large amount of signal processing is done on the audio signal to determine a compressed representation encapsulating tempo, tuning and harmony. As an example of the techniques used we will use the following audio clip.
 
 ![audio](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio.png)
 
@@ -78,15 +79,35 @@ The fourier transform of the autocorrelation is peaked around the tempo! We find
 
 We then fine tune the peak tempo by iterating over a small window around that value.
 In each iteration we perform a weighted sum of the onsets. The weights are low close to each beat, as determined by the tempo in that particular iteration (marked in blue below), and high away from them.
-By choosing the tempo that minimizes that sum, the tempo very clearly aligns with the onsets:
+By choosing the tempo that minimizes that sum, the tempo very clearly aligns with the onsets.
 ![onset_energy_with_tempo](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/onset_energy_with_tempo.png)
 
 ### Octave-Mapped Spectrogram
 
+The harmonic profile we use is the spectrum of the audio, wrapped to an octave and discretized into 12 notes. To compute it we first compute the FFT:
+
 ![audio_fft](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio_fft.png)
+
+Then we filter the audio using an [https://en.wikipedia.org/wiki/A-weighting](https://en.wikipedia.org/wiki/A-weighting) curve. This attenuates the frequnecies to match the frequncy response of the human ear. Low frequences (< 1kHz) and high frequences (> 10kHz) are reduced and frequnceis in the talking range (~2kHz) are most pronounced.
+
 ![audio_filtered_fft](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/audio_filtered_fft.png)
+
+We then use the peak picking described in [Estimation of Frequency, Amplitude, and Phase from the DFT of a Time Series](https://pdfs.semanticscholar.org/df2e/2b3ae9d784e19ea0840f8bb26ff622b17c22.pdf) and accumulate these peaks in a histogram with the frequencies wrapped to an octave.
+Since the frequency doubles in each octave, the placement in the octave on a scale from 0 to 1 is:
+
+![octave](https://latex.codecogs.com/gif.latex?\log_2\left(\frac{f}{440})\mod{1}\right)
+
+On a scale from 0 to 11 (the 12 notes in an octave), our octave looks like:
+
 ![octave](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/octave.png)
+
+The above octave is out of tune. This is visible due to the fact that the peaks are shifted away from an integer bin.
+To tune, we then find the number of cents that minimizes the distance of the weight in the histogram from an integer bin.
+
 ![octave_tuned](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/octave_tuned.png)
+
+After the octave is tuned it is discretized to produce a 12-value profile:
+
 ![octave_discretized](https://raw.githubusercontent.com/sportdeath/SampleSorter/master/media/octave_discretized.png)
 
 ### Classification
@@ -96,22 +117,19 @@ we can now classify pairs of samples as being harmonic or inharmonic.
 While throughout history many "[rules of harmony](https://en.wikipedia.org/wiki/Harmony#Historical_rules)" have been proposed, those rules are often broken and change over time. Moreover they would be extremely difficult to impliment consistently.
 Instead we take advantage of the fact that we already have a dataset of samples which are "harmonic".
 
-Using this dataset, classifying pairs of samples is a positive-unlabeled learning problem.
-All of the samples in the dataset are considered to be harmonic examples.
-We can combine any pair of these samples to create an unlabeled example.
+Using this dataset, classifying pairs of samples as harmonic is a positive-unlabeled learning problem.
+All of the samples in the dataset are considered to be harmonic examples and we can combine any pair of these samples to create an unlabeled example.
 
-I have chosen to classify these samples using a multilayer fully connected neural network.
-Since the network has so many free parameters, PU-learning is prone to overfit so we use a non-negative loss function:
+We use a multilayer fully connected neural network to fit train.
+Since the network has so many free parameters, PU-learning is prone to overfit so we use a non-negative loss function via [Positive Unlabeled Learning with Non-Negative Risk Estimator](http://papers.nips.cc/paper/6765-positive-unlabeled-learning-with-non-negative-risk-estimator.pdf).
 
-[Latexed function]
+In addition we normalize all the inputs, add batch normalization, and dropout to prevent overfitting. We also augment the data by rotating the octaves uniformly at random. To have better rotational invariance we use a variant of the layer decribed in [Spatial Transformer Networks](https://arxiv.org/abs/1506.02025).
 
-In addition we normalize all the inputs, add L2-regularization, batch normalization, and dropout to prevent overfitting. We also augment the data by rotating the octaves uniformly at random. To have better rotational invariance we employ a variant of the [spatial transoformer netowork](link).
+## Future work
 
-[GIF of octave transform]
-
-## Results
-
-[Examples of found pairs]
+- Add quantitative values.
+- Make a GUI.
+- Using a recurrent neural network.
 
 ## Dependencies
 
@@ -126,3 +144,4 @@ In addition we normalize all the inputs, add L2-regularization, batch normalizat
 - [On the Use of Phase and Energy for Musical Onset Detection in the Complex Domain](https://www.researchgate.net/profile/Mark_Sandler2/publication/3343056_On_the_Use_of_Phase_and_Energy_for_Musical_Onset_Detection_in_the_Complex_Domain/links/5412b6110cf2bb7347dafd25/On-the-Use-of-Phase-and-Energy-for-Musical-Onset-Detection-in-the-Complex-Domain.pdf)
 - [Estimation of Frequency, Amplitude, and Phase from the DFT of a Time Series](https://pdfs.semanticscholar.org/df2e/2b3ae9d784e19ea0840f8bb26ff622b17c22.pdf)
 - [Positive Unlabeled Learning with Non-Negative Risk Estimator](http://papers.nips.cc/paper/6765-positive-unlabeled-learning-with-non-negative-risk-estimator.pdf)
+- [Spatial Transformer Networks](https://arxiv.org/abs/1506.02025)
