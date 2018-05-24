@@ -5,43 +5,57 @@ import numpy as np
 from sample import Sample
 from octave_classifier import OctaveClassifier
 
-class OctaveReader:
-
+class SampleReader:
     @staticmethod
-    def getOctave(filepath, user_library, force_reprocess):
-        s = Sample(filepath, user_library, force_reprocess)
-        s.process()
-        octave = s.getOctave()
-        s.writeToFile()
-        s.delete()
-        return octave
-
-    @staticmethod
-    def getOctaves(user_library, sample_library, force_reprocess):
+    def readSamples(user_library, sample_library, force_reprocess, shuffle=True):
         user_library = os.path.expanduser(user_library)
         sample_library = os.path.expanduser(sample_library)
 
         octaves = []
+        tempos = []
+        tunings = []
+        paths = []
         for dirpath, dirnames, filenames in os.walk(sample_library):
             for filename in filenames:
                 name, ext = os.path.splitext(filename)
                 if ext == ".alc":
+                    full_path = os.path.abspath(os.path.join(dirpath, filename))
+                    paths.append(full_path)
                     filepath = os.path.join(dirpath, filename)
-                    octave = OctaveReader.getOctave(filepath, user_library, force_reprocess)
+                    octave, tempo, tuning = SampleReader.readSample(filepath, user_library, force_reprocess)
                     if np.count_nonzero(octave) == 0:
                         print(filepath)
                         print(octave)
                     octaves.append(octave)
+                    tempos.append(tempo)
+                    tunings.append(tuning)
 
-        # Convert to a numpy array and shuffle
+        if shuffle:
+            zipped = list(zip(octaves, tempos, tunings, paths))
+            zipped = random.shuffle(zipped)
+            octaves, tempos, tunings, paths = zip(*zipped)
+
         octaves = np.array(octaves)
-        np.random.shuffle(octaves)
+        tempos = np.array(tempos)
+        tunings = np.array(tunings)
 
         # Normalize
         norm = np.linalg.norm(octaves, axis=1)
         octaves = octaves/norm[:,None]
 
-        return octaves
+        return octaves, tempos, tunings, paths
+
+    @staticmethod
+    def readSample(filepath, user_library, force_reprocess):
+        s = Sample(filepath, user_library, force_reprocess)
+        s.process()
+        octave = s.getOctave()
+        tempo = s.getTempo()
+        tuning = s.getTuning()
+        # if force_reprocess:
+        s.writeToFile()
+        s.delete()
+        return octave, tempo, tuning
 
     @staticmethod
     def makePositiveBatch(dataset, batch_size):

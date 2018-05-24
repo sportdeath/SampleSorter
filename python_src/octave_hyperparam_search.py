@@ -4,6 +4,7 @@ import tensorflow as tf
 from octave_classifier import OctaveClassifier
 from octave_reader import OctaveReader
 
+TENSORFLOW_GRAPH = "./graph"
 USER_LIBRARY = "~/Documents/UserLibrary/"
 SAMPLE_LIBRARY = "~/Documents/UserLibrary/SampleLibrary/"
 FORCE_REPROCESS = False
@@ -12,11 +13,11 @@ LOG_DIR = "tmp/octave_classifier/hyper_param_search/"
 
 HYPERPARAMS = [
         [10], # batch_size
-        [0.0005, 0.0001], # learning_rate
-        [0.5, 0.8, 1.], # dropout
-        [50, 100, 200], # units_per_layer
-        [2, 3, 4], # localization_layers
-        [3, 5, 7], # classification_layers
+        [0.0005], # learning_rate
+        [0.5], # dropout
+        [50], # units_per_layer
+        [1], # localization_layers
+        [2], # classification_layers
         ]
 
 def make_hyperparam_string(hyperparams):
@@ -32,7 +33,7 @@ def make_hyperparam_string(hyperparams):
 def main():
     # Get all the octaves
     print("Loading octaves...")
-    octaves = OctaveReader.getOctaves(USER_LIBRARY, SAMPLE_LIBRARY, FORCE_REPROCESS)
+    octaves, paths = OctaveReader.getOctaves(USER_LIBRARY, SAMPLE_LIBRARY, FORCE_REPROCESS)
     print("Done.")
 
     # Get training and validation sets
@@ -62,6 +63,8 @@ def main():
 
         log_dir = LOG_DIR + make_hyperparam_string(hyperparams) + "/"
 
+        saver = tf.train.Saver()
+
         with tf.Session() as session:
             session.run(tf.local_variables_initializer())
             session.run(tf.global_variables_initializer())
@@ -69,7 +72,7 @@ def main():
             train_writer = tf.summary.FileWriter(log_dir + "train")
             validation_writer = tf.summary.FileWriter(log_dir + "validation")
 
-            for i in range(300000):
+            for i in range(2000000):
                 # Make random positive and unlabeled batches
                 batch = OctaveReader.makeBatch(train_set, batch_size)
 
@@ -91,6 +94,10 @@ def main():
                     train_writer.add_summary(train_summary, i)
                     validation_writer.add_summary(validation_summary, i)
                     print(i)
+
+                if i % 100000 == 0:
+                    print("Writing..")
+                    save_path = saver.save(session, TENSORFLOW_GRAPH)
 
 if __name__ == "__main__":
     main()

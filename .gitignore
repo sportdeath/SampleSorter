@@ -4,6 +4,7 @@ tmp/
 TestFiles/
 TestFilesBackup.zip
 *.dylib
+*.so
 python_src/__pycache__
 
 # OS generated files #
