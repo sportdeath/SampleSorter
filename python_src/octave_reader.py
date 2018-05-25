@@ -28,9 +28,9 @@ class OctaveReader:
                 if ext == ".alc":
                     filepath = os.path.join(dirpath, filename)
                     octave = OctaveReader.getOctave(filepath, user_library, force_reprocess)
-                    if np.count_nonzero(octave) == 0:
-                        print(filepath)
-                        print(octave)
+                    if np.count_nonzero(octave) == 0 or np.any(np.isnan(octave)):
+                        print("Cannot read ", filepath, "\n")
+                        continue
                     octaves.append(octave)
 
         # Convert to a numpy array and shuffle

@@ -14,12 +14,15 @@ SampleFile::SampleFile(std::string filePath_) {
 bool SampleFile::process() {
   try {
     if (not readMetaData()) {
+      std::cout << "Processing " + filePath + " ..." << std::endl;
       long sampleRate;
       std::vector< std::vector<double> > waves = extractAudio(&sampleRate);
       sample = AudioSample(waves, sampleRate);
+      std::cout << "Done!" << std::endl << std::endl;
     }
     return true;
   } catch (ProcessingException & e) {
+    std::cout << std::endl;
     std::cout << e.getMessage() << std::endl;
     return false;
   }

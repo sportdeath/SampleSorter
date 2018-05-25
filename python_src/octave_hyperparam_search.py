@@ -4,19 +4,19 @@ import tensorflow as tf
 from octave_classifier import OctaveClassifier
 from octave_reader import OctaveReader
 
-USER_LIBRARY = "~/Documents/UserLibrary/"
-SAMPLE_LIBRARY = "~/Documents/UserLibrary/SampleLibrary/"
+USER_LIBRARY = "~/FatDisk/User Library/"
+SAMPLE_LIBRARY = "~/Samples/"
 FORCE_REPROCESS = False
 TRAIN_PROPORTION = 0.8
-LOG_DIR = "tmp/octave_classifier/hyper_param_search/"
+LOG_DIR = "tmp/octave_classifier/hyper_param_search2/"
 
 HYPERPARAMS = [
         [10], # batch_size
-        [0.0005, 0.0001], # learning_rate
-        [0.5, 0.8, 1.], # dropout
-        [50, 100, 200], # units_per_layer
-        [2, 3, 4], # localization_layers
-        [3, 5, 7], # classification_layers
+        [0.0005], # learning_rate
+        [0.5], # dropout
+        [20, 50], # units_per_layer
+        [2], # localization_layers
+        [2, 3], # classification_layers
         ]
 
 def make_hyperparam_string(hyperparams):
@@ -69,7 +69,7 @@ def main():
             train_writer = tf.summary.FileWriter(log_dir + "train")
             validation_writer = tf.summary.FileWriter(log_dir + "validation")
 
-            for i in range(300000):
+            for i in range(3000000):
                 # Make random positive and unlabeled batches
                 batch = OctaveReader.makeBatch(train_set, batch_size)
 
@@ -79,7 +79,7 @@ def main():
 
                 session.run(optimizer, feed_dict=feed_dict)
 
-                if i % 100 == 0:
+                if i % 2000 == 0:
                     train_summary = session.run(summary, feed_dict=feed_dict)
 
                     feed_dict={}

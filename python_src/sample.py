@@ -1,7 +1,7 @@
 import ctypes
 import math
 
-lib = ctypes.CDLL("libSampleSorter.dylib")
+lib = ctypes.CDLL("../build/libSampleSorter.so")
 
 class Sample:
     def __init__(self, fileName, userLibrary, forceReprocess):

@@ -62,6 +62,7 @@ std::vector< std::vector<double> > AbletonSampleFile::extractAudio(long * sample
 
 void AbletonSampleFile::getDoc() {
   std::stringstream unzipped;
+  std::string xml;
   try {
     // Ungzip
     std::ifstream zipped(filePath, 
@@ -70,13 +71,30 @@ void AbletonSampleFile::getDoc() {
     in.push(boost::iostreams::gzip_decompressor());
     in.push(zipped);
     boost::iostreams::copy(in, unzipped);
+    xml = unzipped.str();
   } catch (boost::iostreams::gzip_error & e) {
-    std::cerr << e.what() << std::endl;
-    throw ProcessingException("Could not ungzip Ableton file!");
+    // Try to open it as text
+    std::ifstream text(filePath);
+    if (text.good()) {
+      std::string firstLine;
+      std::getline(text, firstLine);
+      if (firstLine == "<?xml version=\"1.0\" encoding=\"UTF-8\"?>") {
+        // Go back to the beginning and read the whole file
+        text.clear();
+        text.seekg(0, std::ios::beg);
+        xml = std::string((std::istreambuf_iterator<char>(text)),
+             std::istreambuf_iterator<char>());
+      }
+    }
+    text.close();
+  }
+
+  if (xml == "") {
+    throw ProcessingException("Could not read Ableton file!");
   }
 
   // convert from XML
-  doc.Parse(&unzipped.str()[0]);
+  doc.Parse(&xml[0]);
 }
 
 void AbletonSampleFile::setDoc() {
@@ -96,6 +114,7 @@ void AbletonSampleFile::setDoc() {
     filter.push(unzipped);
     boost::iostreams::copy(filter, zipped);
   } catch (boost::iostreams::gzip_error & e) {
+    std::cout << std::endl;
     std::cerr << e.what() << std::endl;
     throw ProcessingException("Could not gzip Ableton file!");
   }

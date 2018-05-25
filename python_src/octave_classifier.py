@@ -191,7 +191,8 @@ class OctaveClassifier:
                 [[10., 1., 2., 5., 1.],
                  [1.0, 7., 1., 20., 1.]], tf.float32)
 
-        _octave_rotate_disc(octave, choices)
+        octave_rotated = self._octave_rotate_disc(octave, choices)
 
 if __name__=="__main__":
-    _test_octave_rotate_disc()
+    oc = OctaveClassifier()
+    oc._test_octave_rotate_disc()
