@@ -4,6 +4,7 @@ import tensorflow as tf
 from octave_classifier import OctaveClassifier
 from octave_reader import OctaveReader
 
+TENSORFLOW_GRAPH = "./graph"
 USER_LIBRARY = "~/FatDisk/User Library/"
 SAMPLE_LIBRARY = "~/Samples/"
 FORCE_REPROCESS = False
@@ -32,7 +33,7 @@ def make_hyperparam_string(hyperparams):
 def main():
     # Get all the octaves
     print("Loading octaves...")
-    octaves = OctaveReader.getOctaves(USER_LIBRARY, SAMPLE_LIBRARY, FORCE_REPROCESS)
+    octaves, paths = OctaveReader.getOctaves(USER_LIBRARY, SAMPLE_LIBRARY, FORCE_REPROCESS)
     print("Done.")
 
     # Get training and validation sets
@@ -61,6 +62,8 @@ def main():
         optimizer, summary, batch_ph, training = oc.construct_with_loss(batch_size)
 
         log_dir = LOG_DIR + make_hyperparam_string(hyperparams) + "/"
+
+        saver = tf.train.Saver()
 
         with tf.Session() as session:
             session.run(tf.local_variables_initializer())
@@ -91,6 +94,10 @@ def main():
                     train_writer.add_summary(train_summary, i)
                     validation_writer.add_summary(validation_summary, i)
                     print(i)
+
+                if i % 100000 == 0:
+                    print("Writing..")
+                    save_path = saver.save(session, TENSORFLOW_GRAPH)
 
 if __name__ == "__main__":
     main()

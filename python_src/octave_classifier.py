@@ -24,11 +24,9 @@ class OctaveClassifier:
         self.learning_rate = learning_rate
 
     def construct_with_loss(self, batch_size, reuse=False):
-        # Make training placeholder
-        training = tf.placeholder(tf.bool)
 
         # Construct classifier
-        batch_ph, decision = self.construct(batch_size, training=training, reuse=reuse)
+        batch_ph, training_ph, decision = self.construct(batch_size, reuse=reuse)
 
         # Compute losses
         loss, loss_summaries = self.loss(decision)
@@ -38,7 +36,7 @@ class OctaveClassifier:
         with tf.control_dependencies(update_ops):
             optimizer = tf.train.AdamOptimizer(self.learning_rate).minimize(loss)
 
-        return optimizer, loss_summaries, batch_ph, training
+        return optimizer, loss_summaries, batch_ph, training_ph
 
     def loss(self, decision, name="octave_classifier_loss"):
         """
@@ -46,8 +44,8 @@ class OctaveClassifier:
         https://arxiv.org/abs/1703.00593
         """
         with tf.variable_scope(name):
-            batch_size = decision.get_shape().as_list()[0]
-            positive_size = int(batch_size/2)
+            positive_size = tf.shape(decision)[0]/2
+            positive_size = tf.cast(positive_size, tf.int32)
 
             decision_positive = decision[:positive_size]
             decision_unlabeled = decision[positive_size:]
@@ -82,9 +80,11 @@ class OctaveClassifier:
 
         return loss, loss_summaries
 
-    def construct(self, batch_size, training, name="octave_classifier", reuse=False):
+    def construct(self, batch_size, name="octave_classifier", reuse=False):
         with tf.variable_scope(name, reuse=reuse):
-            octave = tf.placeholder(dtype=tf.float32, shape=[2 * batch_size, self.octave_length])
+            octave = tf.placeholder(dtype=tf.float32, name="octave")
+            octave = tf.reshape(octave, [-1, self.octave_length])
+            training = tf.placeholder(tf.bool, name="training")
 
             # Determine how the octave should be rotated
             choices = self._dense_net(octave, self.localization_layers, training, "localization", reuse=reuse)
@@ -94,8 +94,9 @@ class OctaveClassifier:
 
             # Classify the octave
             decision = self._dense_net(transformed, self.classification_layers, training, "classification", reuse=reuse)
+            decision = tf.identity(decision, name="decision")
 
-        return octave, decision
+        return octave, training, decision
 
     def _dense_net(self, input_, layer_units, training, name="dense_net", reuse=False):
         """
@@ -140,33 +141,26 @@ class OctaveClassifier:
 
     def _octave_rotate_disc(self, octave, choices, name="octave_rotate_disc"):
         with tf.variable_scope(name):
-            # Extract the shape
-            octave_shape = octave.get_shape().as_list()
-            batch_size = octave_shape[0]
-            octave_length = octave_shape[1]
-
             # Make the indices that will rotate each octave
             # by each possible integer
             indices = []
-            for i in range(octave_length):
-                indices.append(np.roll(np.arange(octave_length), -i))
+            for i in range(self.octave_length):
+                indices.append(np.roll(np.arange(self.octave_length), -i))
             indices = np.array(indices)
             # [ 0  1 ... 11 12]
             # [ 1  2 ... 11  0]
             #        ...
             # [12  0 ... 10 11]
             indices = np.expand_dims(indices, axis=0)
-            indices = np.tile(indices, (batch_size, 1, 1))
+            indices = tf.constant(indices, tf.int32)
+            indices = tf.tile(indices, (tf.shape(octave)[0], 1, 1))
 
-            batch = np.arange(batch_size)
-            batch = np.expand_dims(np.expand_dims(batch, axis=-1), axis=-1)
-            batch = np.tile(batch, (1, octave_length, octave_length))
+            batch = tf.range(tf.shape(octave)[0])
+            batch = tf.expand_dims(tf.expand_dims(batch, axis=-1), axis=-1)
+            batch = tf.tile(batch, (1, self.octave_length, self.octave_length))
 
             # Stack them
-            indices = np.stack((batch, indices), axis=-1)
-
-            # Convert to tf
-            indices = tf.constant(indices, tf.int32)
+            indices = tf.stack((batch, indices), axis=-1)
 
             # Rotate each octave
             octave_rotations = tf.gather_nd(octave, indices)
@@ -174,7 +168,7 @@ class OctaveClassifier:
             # Make the choices
             choices = tf.nn.softmax(choices)
             choices = tf.expand_dims(choices, axis=-1)
-            choices = tf.tile(choices, (1, 1, octave_length))
+            choices = tf.tile(choices, (1, 1, self.octave_length))
             octave_rotated = octave_rotations * choices
 
             # Sum the choices
@@ -186,13 +180,14 @@ class OctaveClassifier:
         octave = tf.constant(
                 [[1, 2, 3, 4, 5],
                  [5, 4, 3, 2, 1]], tf.float32)
+        octave = tf.reshape(octave, (-1, 5))
 
         choices = tf.constant(
                 [[10., 1., 2., 5., 1.],
                  [1.0, 7., 1., 20., 1.]], tf.float32)
+        choices = tf.reshape(choices, (-1, 5))
 
-        octave_rotated = self._octave_rotate_disc(octave, choices)
+        self._octave_rotate_disc(octave, choices)
 
 if __name__=="__main__":
-    oc = OctaveClassifier()
-    oc._test_octave_rotate_disc()
+    OctaveClassifier(octave_length=5)._test_octave_rotate_disc()
