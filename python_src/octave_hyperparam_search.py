@@ -2,21 +2,21 @@ import itertools
 import tensorflow as tf
 
 from octave_classifier import OctaveClassifier
-from octave_reader import OctaveReader
+from sample_reader import SampleReader
 
 TENSORFLOW_GRAPH = "./graph"
-USER_LIBRARY = "~/Documents/UserLibrary/"
-SAMPLE_LIBRARY = "~/Documents/UserLibrary/SampleLibrary/"
+USER_LIBRARY = "~/FatDisk/User Library/"
+SAMPLE_LIBRARY = "~/Samples/"
 FORCE_REPROCESS = False
 TRAIN_PROPORTION = 0.8
-LOG_DIR = "tmp/octave_classifier/hyper_param_search/"
+LOG_DIR = "tmp/octave_classifier/hyper_param_search3/"
 
 HYPERPARAMS = [
         [10], # batch_size
         [0.0005], # learning_rate
         [0.5], # dropout
         [50], # units_per_layer
-        [1], # localization_layers
+        [2], # localization_layers
         [2], # classification_layers
         ]
 
@@ -33,7 +33,10 @@ def make_hyperparam_string(hyperparams):
 def main():
     # Get all the octaves
     print("Loading octaves...")
-    octaves, paths = OctaveReader.getOctaves(USER_LIBRARY, SAMPLE_LIBRARY, FORCE_REPROCESS)
+    octaves, tempos, tunings, paths = SampleReader.readSamples(
+            USER_LIBRARY,
+            SAMPLE_LIBRARY,
+            FORCE_REPROCESS)
     print("Done.")
 
     # Get training and validation sets
@@ -63,7 +66,7 @@ def main():
 
         log_dir = LOG_DIR + make_hyperparam_string(hyperparams) + "/"
 
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=999)
 
         with tf.Session() as session:
             session.run(tf.local_variables_initializer())
@@ -72,21 +75,21 @@ def main():
             train_writer = tf.summary.FileWriter(log_dir + "train")
             validation_writer = tf.summary.FileWriter(log_dir + "validation")
 
-            for i in range(2000000):
+            for i in range(3000000):
                 # Make random positive and unlabeled batches
-                batch = OctaveReader.makeBatch(train_set, batch_size)
+                batch = SampleReader.makeBatch(train_set, batch_size)
 
                 feed_dict = {}
-                feed_dict[batch_ph] = OctaveReader.makeBatch(train_set, batch_size)
+                feed_dict[batch_ph] = SampleReader.makeBatch(train_set, batch_size)
                 feed_dict[training] = True
 
                 session.run(optimizer, feed_dict=feed_dict)
 
-                if i % 100 == 0:
+                if i % 2000 == 0:
                     train_summary = session.run(summary, feed_dict=feed_dict)
 
                     feed_dict={}
-                    feed_dict[batch_ph] = OctaveReader.makeBatch(validation_set, batch_size)
+                    feed_dict[batch_ph] = SampleReader.makeBatch(validation_set, batch_size)
                     feed_dict[training] = False
 
                     validation_summary = session.run(summary, feed_dict=feed_dict)

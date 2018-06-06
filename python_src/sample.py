@@ -2,6 +2,7 @@ import ctypes
 import math
 
 # lib = ctypes.CDLL("libSampleSorter.dylib")
+# lib = ctypes.CDLL("../build/libSampleSorter.so")
 import os
 os.chdir("A:\\SampleSorter\\build\\Release")
 dll_path = "SampleSorter.dll"
