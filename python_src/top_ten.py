@@ -6,21 +6,21 @@ import os
 import numpy as np
 import tensorflow as tf
 
-from octave_reader import SampleReader
+from sample_reader import SampleReader
 
 TENSORFLOW_GRAPH = "graph"
 TUNING_EPSILON = 15
 MOST_SEMITONES = 3
 
-USER_LIBRARY = "~/Documents/UserLibrary/"
-SAMPLE_LIBRARY = "~/Documents/UserLibrary/SampleLibrary/"
+USER_LIBRARY = "~/FatDisk/User Library/"
+SAMPLE_LIBRARY = "~/Samples/"
 FORCE_REPROCESS = False
 
 def filter_samples(octaves, tempos, tunings, paths, sample_index):
     # Determine if tuning is ~semitone
-    delta_tunings = 1200 * np.log2(tempos[sample_index]/tempos)
-    delta_tunings = np.mod(delta_tunings + 600, 1200) - 600
-    is_in_tune = (50 - np.abs(50 - np.mod(delta_tunings, 100))) < TUNING_EPSILON
+    delta_tunings = 1200. * np.log2(tempos[sample_index]/tempos)
+    delta_tunings = np.mod(delta_tunings + 600., 1200.) - 600.
+    is_in_tune = (50. - np.abs(50. - np.mod(delta_tunings, 100.))) < TUNING_EPSILON
     is_in_tune = np.logical_and(is_in_tune, (np.abs(delta_tunings) < 100 * MOST_SEMITONES))
 
     octaves = octaves[is_in_tune]
@@ -71,6 +71,8 @@ def main():
             FORCE_REPROCESS,
             shuffle=False)
     print("Found " + str(octaves.shape[0]) + " octaves.")
+
+
 
     sample_index = paths.index(sample_path)
     sample_octave = octaves[sample_index]
