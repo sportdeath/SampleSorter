@@ -3,6 +3,7 @@
 #include <complex>
 #include <iostream>
 #include <algorithm>
+#include <ciso646>
 
 #include <fftw3.h>
 

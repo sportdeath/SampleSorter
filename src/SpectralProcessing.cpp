@@ -1,7 +1,10 @@
-#include <vector>
+#define _USE_MATH_DEFINES
 #include <cmath>
+
+#include <vector>
 #include <complex>
 #include <iostream>
+#include <ciso646>
 
 #include "SampleSorter/SpectralProcessing.hpp"
 #include "Plotting/Plotting.hpp"

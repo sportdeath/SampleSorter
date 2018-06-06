@@ -1,3 +1,9 @@
+#ifdef _WIN32
+#  define EXPORT __declspec(dllexport)
+#else
+#  define EXPORT
+#endif
+
 #include <iostream>
 
 #include "SampleSorter/SampleFile.hpp"
@@ -7,32 +13,32 @@
 #include "Plotting/Plotting.hpp"
 
 extern "C" {
-  SampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary, bool forceReprocess) {
+  EXPORT SampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary, bool forceReprocess) {
     AbletonSampleFile * s = new AbletonSampleFile(filePath, userLibrary, forceReprocess);
     return s;
   }
-  bool process(SampleFile * s) {
+  EXPORT bool process(SampleFile * s) {
     return s -> process();
   }
-  const char * getFileName(SampleFile * s) {
+  EXPORT const char * getFileName(SampleFile * s) {
     return s -> getFileName().c_str();
   }
-  long getTuningCents(SampleFile * s) {
+  EXPORT long getTuningCents(SampleFile * s) {
     return s -> getAudioSample() -> getTuningCents();
   }
-  short getFundemental(SampleFile * s) {
+  EXPORT short getFundemental(SampleFile * s) {
     return s -> getAudioSample() -> getFundemental();
   }
-  long getTheOneWithTuning(SampleFile * s) {
+  EXPORT long getTheOneWithTuning(SampleFile * s) {
     return s -> getAudioSample() -> getTheOneWithTuning();
   }
-  double getBeatWithTuning(SampleFile * s) {
+  EXPORT double getBeatWithTuning(SampleFile * s) {
     return s -> getAudioSample() -> getBeatWithTuning();
   }
-  size_t getNumChords(SampleFile * s) {
+  EXPORT size_t getNumChords(SampleFile * s) {
     return s -> getAudioSample() -> getChords().size();
   }
-  double ** getChords(SampleFile * s) {
+  EXPORT double ** getChords(SampleFile * s) {
     std::vector<Octave> chords = s -> getAudioSample() -> getChords();
     double ** chordsArray = new double *[chords.size()];
     for (long i = 0; i < chords.size(); i++) {
@@ -43,7 +49,7 @@ extern "C" {
     }
     return chordsArray;
   }
-  double * getOctave(SampleFile * s) {
+  EXPORT double * getOctave(SampleFile * s) {
     Octave octave = s -> getAudioSample() -> getOctave();
     double * octaveArray = new double [12];
     for (long i = 0; i < 12; i++) {
@@ -51,19 +57,19 @@ extern "C" {
     }
     return octaveArray;
   }
-  void writeToFile(AbletonSampleFile * s) {
+  EXPORT void writeToFile(AbletonSampleFile * s) {
     s -> writeToFile();
   }
-  void deleteChords(double ** chords, size_t chordsSize) {
+  EXPORT void deleteChords(double ** chords, size_t chordsSize) {
     for (size_t i = 0; i < chordsSize; i++) {
       delete chords[i];
     }
     delete chords;
   }
-  void deleteOctave(double * octave) {
+  EXPORT void deleteOctave(double * octave) {
     delete octave;
   }
-  void deleteAbletonSampleFile(AbletonSampleFile * s) {
+  EXPORT void deleteAbletonSampleFile(AbletonSampleFile * s) {
     delete s;
   }
 }

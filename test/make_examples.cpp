@@ -98,7 +98,7 @@ int main(int argc, char ** argv) {
   
   // Find the auto correlation
   double highPass = 2./Units::binsToSeconds(onsets.size(), hopSize, sampleRate);
-  highPass = std::max(highPass, 1.);
+  highPass = (std::max)(highPass, 1.);
   std::vector<double> correlation = 
     SpectralProcessing::autoCorrelation(
         onsets,

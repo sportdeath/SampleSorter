@@ -1,4 +1,5 @@
 #include <iostream>
+#include <ciso646>
 
 #include <vector>
 #include <string>
@@ -49,7 +50,8 @@ std::string AbletonSampleFile::getReferenceFilePath() const {
 }
 
 std::string AbletonSampleFile::getReferenceFileName() const {
-  return boost::filesystem::path(referenceFilePath).stem().native();
+  return boost::filesystem::path(referenceFilePath).stem().make_preferred().string();
+	  // native();
 }
 
 double AbletonSampleFile::getSampleSeconds() const {

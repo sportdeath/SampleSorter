@@ -1,13 +1,7 @@
 cmake_minimum_required (VERSION 3.4)
 project (SampleSorter)
 
-include(CheckCXXCompilerFlag)
-CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
-if(COMPILER_SUPPORTS_CXX11)
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-else()
-  message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no c++11 support.")
-endif()
+set(CMAKE_CXX_STANDARD 11)
 
 #Adding cmake modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/modules/)
@@ -102,4 +96,4 @@ macro(MAKE_TEST test_name)
   add_test(${test_name} ${test_name})
 endmacro()
 
-MAKE_TEST(make_examples)
+# MAKE_TEST(make_examples)

@@ -1,6 +1,7 @@
 #include <vector>
 #include <cmath>
 #include <iostream>
+#include <ciso646>
 
 #include <fftw3.h>
 

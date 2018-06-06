@@ -1,6 +1,7 @@
 #include <vector>
 #include <cmath>
 #include <random>
+#include <algorithm>
 
 #include <fftw3.h>
 
@@ -169,7 +170,7 @@ void Tempo::findCorrelationTempo(
   // filter out frequencies less than 2 per clip
   // Clips with tempo must contain at least 2 beats
   double highPass = 2./Units::binsToSeconds(onsets.size(), HOP_SIZE, sampleRate);
-  highPass = std::max(highPass, HIGH_PASS);
+  highPass = (std::max)(highPass, HIGH_PASS);
 
   std::vector<double> correlation = 
     SpectralProcessing::autoCorrelation(

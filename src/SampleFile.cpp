@@ -1,5 +1,6 @@
 #include <vector>
 #include <iostream>
+#include <ciso646>
 
 #include <boost/filesystem.hpp>
 
@@ -30,7 +31,7 @@ std::string SampleFile::getFilePath() {
 }
 
 std::string SampleFile::getFileName() {
-  return boost::filesystem::path(filePath).stem().native();
+  return boost::filesystem::path(filePath).stem().make_preferred().string();
 }
 
 AudioSample * SampleFile::getAudioSample() {

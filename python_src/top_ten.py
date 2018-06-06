@@ -12,8 +12,8 @@ TENSORFLOW_GRAPH = "graph"
 TUNING_EPSILON = 15
 MOST_SEMITONES = 3
 
-USER_LIBRARY = "~/Documents/UserLibrary/"
-SAMPLE_LIBRARY = "~/Documents/UserLibrary/SampleLibrary/"
+USER_LIBRARY = "A:\\User Library"
+SAMPLE_LIBRARY = "A:\\User Library\\SampleLibrary\\"
 FORCE_REPROCESS = False
 
 def filter_samples(octaves, tempos, tunings, paths, sample_index):
