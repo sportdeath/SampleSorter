@@ -6,10 +6,10 @@ class OctaveClassifier:
             self,
             activation=tf.nn.relu,
             octave_length=12,
-            units_per_layer=100,
-            localization_layers=3,
-            classification_layers=5,
-            dropout=0.8,
+            units_per_layer=50,
+            localization_layers=2,
+            classification_layers=2,
+            dropout=0.5,
             expected_positive=0.5,
             non_negative_tolerance=0.,
             learning_rate=0.0005):
@@ -23,10 +23,10 @@ class OctaveClassifier:
         self.non_negative_tolerance = non_negative_tolerance
         self.learning_rate = learning_rate
 
-    def construct_with_loss(self, batch_size, reuse=False):
+    def construct_with_loss(self, reuse=False):
 
         # Construct classifier
-        batch_ph, training_ph, decision = self.construct(batch_size, reuse=reuse)
+        batch_ph, training_ph, decision = self.construct(reuse=reuse)
 
         # Compute losses
         loss, loss_summaries = self.loss(decision)
@@ -80,7 +80,7 @@ class OctaveClassifier:
 
         return loss, loss_summaries
 
-    def construct(self, batch_size, name="octave_classifier", reuse=False):
+    def construct(self, name="octave_classifier", reuse=False):
         with tf.variable_scope(name, reuse=reuse):
             octave = tf.placeholder(dtype=tf.float32, name="octave")
             octave = tf.reshape(octave, [-1, self.octave_length])

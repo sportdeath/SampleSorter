@@ -7,7 +7,7 @@ from octave_classifier import OctaveClassifier
 
 class SampleReader:
     @staticmethod
-    def readSamples(user_library, sample_library, force_reprocess, shuffle=True):
+    def read_samples(user_library, sample_library, force_reprocess, shuffle=True):
         user_library = os.path.expanduser(user_library)
         sample_library = os.path.expanduser(sample_library)
 
@@ -15,13 +15,14 @@ class SampleReader:
         tempos = []
         tunings = []
         paths = []
+        audio_file_paths = []
         for dirpath, dirnames, filenames in os.walk(sample_library):
             for filename in filenames:
                 name, ext = os.path.splitext(filename)
                 if ext == ".alc":
                     full_path = os.path.abspath(os.path.join(dirpath, filename))
                     filepath = os.path.join(dirpath, filename)
-                    octave, tempo, tuning = SampleReader.readSample(filepath, user_library, force_reprocess)
+                    octave, tempo, tuning, audio_file_path = SampleReader.read_sample(filepath, user_library, force_reprocess)
                     if np.count_nonzero(octave) == 0 or np.any(np.isnan(octave)):
                         print("Cannot read ", filepath, "\n")
                         continue
@@ -29,11 +30,12 @@ class SampleReader:
                     octaves.append(octave)
                     tempos.append(tempo)
                     tunings.append(tuning)
+                    audio_file_paths.append(audio_file_path)
 
         if shuffle:
-            zipped = list(zip(octaves, tempos, tunings, paths))
+            zipped = list(zip(octaves, tempos, tunings, paths, audio_file_paths))
             np.random.shuffle(zipped)
-            octaves, tempos, tunings, paths = zip(*zipped)
+            octaves, tempos, tunings, paths, audio_file_paths = zip(*zipped)
 
         octaves = np.array(octaves)
         tempos = np.array(tempos)
@@ -43,22 +45,23 @@ class SampleReader:
         norm = np.linalg.norm(octaves, axis=1)
         octaves = octaves/norm[:,None]
 
-        return octaves, tempos, tunings, paths
+        return octaves, tempos, tunings, paths, audio_file_paths
 
     @staticmethod
-    def readSample(filepath, user_library, force_reprocess):
+    def read_sample(filepath, user_library, force_reprocess):
         s = Sample(filepath, user_library, force_reprocess)
         s.process()
         octave = s.getOctave()
         tempo = s.getTempo()
         tuning = s.getTuning()
+        audio_path = s.getAudioPath()
         # if force_reprocess:
         s.writeToFile()
         s.delete()
-        return octave, tempo, tuning
+        return octave, tempo, tuning, audio_path
 
     @staticmethod
-    def makePositiveBatch(dataset, batch_size):
+    def make_positive_batch(dataset, batch_size):
         random_sel = np.random.randint(dataset.shape[0], size=batch_size)
         batch = dataset[random_sel]
 
@@ -71,9 +74,9 @@ class SampleReader:
         return batch
 
     @staticmethod
-    def makeUnlabeledBatch(dataset, batch_size):
-        batch0 = SampleReader.makePositiveBatch(dataset, batch_size)
-        batch1 = SampleReader.makePositiveBatch(dataset, batch_size)
+    def make_unlabeled_batch(dataset, batch_size):
+        batch0 = SampleReader.make_positive_batch(dataset, batch_size)
+        batch1 = SampleReader.make_positive_batch(dataset, batch_size)
 
         # Add them together
         batch = batch0 + batch1
@@ -85,9 +88,9 @@ class SampleReader:
         return batch
 
     @staticmethod
-    def makeBatch(dataset, batch_size):
-        positive_batch = SampleReader.makePositiveBatch(dataset, batch_size)
-        unlabeled_batch = SampleReader.makeUnlabeledBatch(dataset, batch_size)
+    def make_batch(dataset, batch_size):
+        positive_batch = SampleReader.make_positive_batch(dataset, batch_size)
+        unlabeled_batch = SampleReader.make_unlabeled_batch(dataset, batch_size)
 
         batch = np.concatenate((positive_batch, unlabeled_batch))
 

@@ -62,7 +62,7 @@ def main():
                 localization_layers=hyperparams[4],
                 classification_layers=hyperparams[5]
                 )
-        optimizer, summary, batch_ph, training = oc.construct_with_loss(batch_size)
+        optimizer, summary, batch_ph, training = oc.construct_with_loss()
 
         log_dir = LOG_DIR + make_hyperparam_string(hyperparams) + "/"
 

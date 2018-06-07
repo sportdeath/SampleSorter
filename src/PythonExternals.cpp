@@ -13,7 +13,7 @@
 #include "Plotting/Plotting.hpp"
 
 extern "C" {
-  EXPORT SampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary, bool forceReprocess) {
+  EXPORT AbletonSampleFile * NewAbletonSampleFile(const char * filePath, const char * userLibrary, bool forceReprocess) {
     AbletonSampleFile * s = new AbletonSampleFile(filePath, userLibrary, forceReprocess);
     return s;
   }
@@ -22,6 +22,9 @@ extern "C" {
   }
   EXPORT const char * getFileName(SampleFile * s) {
     return s -> getFileName().c_str();
+  }
+  EXPORT const char * getAudioPath(AbletonSampleFile * s) {
+    return s -> getReferenceFilePath().c_str();
   }
   EXPORT long getTuningCents(SampleFile * s) {
     return s -> getAudioSample() -> getTuningCents();

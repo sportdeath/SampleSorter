@@ -4,9 +4,11 @@ import math
 # lib = ctypes.CDLL("libSampleSorter.dylib")
 # lib = ctypes.CDLL("../build/libSampleSorter.so")
 import os
+cwd = os.getcwd()
 os.chdir("A:\\SampleSorter\\build\\Release")
 dll_path = "SampleSorter.dll"
 lib = ctypes.CDLL(dll_path)
+os.chdir(cwd)
 
 class Sample:
     def __init__(self, fileName, userLibrary, forceReprocess):
@@ -17,6 +19,13 @@ class Sample:
         lib.getFileName.argtypes = [ctypes.c_void_p]
         lib.getFileName.restype = ctypes.c_char_p
         return lib.getFileName(self.s)
+
+    def getAudioPath(self):
+        lib.getAudioPath.argtypes = [ctypes.c_void_p]
+        lib.getAudioPath.restype = ctypes.c_char_p
+        audio_path = lib.getAudioPath(self.s).decode("utf-8")
+        audio_path = audio_path.replace("\\", "/")
+        return audio_path
         
     def process(self):
         lib.process.argtypes = [ctypes.c_void_p]

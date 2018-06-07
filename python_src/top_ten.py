@@ -72,8 +72,6 @@ def main():
             shuffle=False)
     print("Found " + str(octaves.shape[0]) + " octaves.")
 
-
-
     sample_index = paths.index(sample_path)
     sample_octave = octaves[sample_index]
 
