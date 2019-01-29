@@ -1,23 +1,4 @@
-# The Cmake build directory
 build/
-tmp/
-TestFiles/
-TestFilesBackup.zip
-*.dylib
-*.so
-python_src/__pycache__
-
-# OS generated files #
-######################
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Vim #
-#######
 *.sw*
-*~
+*.wav
+*.mp3
