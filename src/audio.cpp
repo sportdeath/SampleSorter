@@ -1,3 +1,4 @@
+#include <iostream>
 #include <vector>
 #include <string>
 #include <stdexcept>
@@ -12,9 +13,123 @@ extern "C" {
 
 using namespace sample_sorter;
 
+// BadAccess (attempt to access private resource denied)
+// BadAccess (attempt to access private resource denied)
+// http://ffmpeg.org/doxygen/trunk/encode_audio_8c-example.html
+// https://www.ffmpeg.org/doxygen/0.6/output-example_8c-source.html
+// https://ffmpeg.org/doxygen/trunk/transcode_aac_8c-example.html#a23
+
 void Audio::write(
     const std::vector<std::vector<double>> & audio,
-    std::string filename) {
+    std::string filename,
+    double sample_rate) {
+
+  // Get a buffer for writing errors to
+  size_t errbuf_size = 200;
+  char errbuf[200];
+
+  // Open the output file to write to it
+  AVIOContext * output_io_context;
+  int error = avio_open(
+      &output_io_context, 
+      filename.c_str(),
+      AVIO_FLAG_WRITE);
+  if (error < 0) {
+    av_strerror(error, errbuf, errbuf_size);
+    throw std::invalid_argument(
+        "The output file, " + filename + ", could not be opened.\n" + 
+        "Error: " + std::string(errbuf));
+  }
+
+  // Create a format context for the output container format
+  AVFormatContext * output_format_context = NULL;
+  if (!(output_format_context = avformat_alloc_context())) {
+    throw std::runtime_error(
+        "Could not allocate output format context");
+  }
+
+  // Associat the output context with the output file
+  output_format_context -> pb = output_io_context;
+
+  // Guess the desired output file type
+  if (!(output_format_context->oformat = av_guess_format(NULL, filename.c_str(), NULL))) {
+    throw std::runtime_error(
+        "Could not find output file format for file: " + filename);
+    CLEANUP;
+  }
+
+  // Add the file pathname to the output context
+  if (!(output_format_context -> url = av_strdup(filename.c_str()))) {
+    throw std::runtime_error(
+        "Could not process file path name for file: " + filename);
+    CLEANUP;
+  }
+
+  // Guess the encoder for the file
+  AVCodecID codec_id = av_guess_codec(
+      output_format_context -> oformat,
+      NULL,
+      filename.c_str(),
+      NULL,
+      AVMEDIA_TYPE_AUDIO);
+
+  // Find an encoder based on the codec
+  AVCodec * output_codec;
+  if (!(output_codec = avcodec_find_encoder(codec_id))) {
+    throw std::runtime_error(
+        "Could not open codec with ID, " + std::to_string(codec_id) + ", for file: " + filename);
+    CLEANUP;
+  }
+
+  // Create a new audio stream in the output file container
+  AVStream * stream;
+  if (!(stream = avformat_new_stream(output_format_context, NULL))) {
+    throw std::runtime_error(
+        "Could not create new stream for output file: " + filename);
+  }
+
+  // Allocate an encoding context
+  AVCodecContext * av_context;
+  if (!(av_context = avcodec_alloc_context3(output_codec))) {
+    throw std::runtime_error(
+        "Could not allocate an encoding context for output file: " + filename);
+  }
+
+  // Set the parameters of the stream
+  av_context -> channels = audio.size();
+  av_context -> channel_layout = av_get_default_channel_layout(audio.size());
+  av_context -> sample_rate = sample_rate;
+  av_context -> sample_fmt = output_codec -> sample_fmts[0];
+  av_context -> bit_rate = OUTPUT_BIT_RATE;
+
+  // Set the sample rate of the container
+  stream -> time_base.den = sample_rate;
+  stream -> time_base.num = 1;
+
+  // Add a global header if necessary
+  if (output_format_context -> oformat -> flags & AVFMT_GLOBALHEADER)
+    av_context -> flags != AV_CODEC_FLAG_GLOBAL_HEADER;
+
+  // Open the encoder for the audio stream to use
+  if ((error = avcodec_open2(av_context, output_codec, NULL)) < 0) {
+    av_strerror(error, errbuf, errbuf_size);
+    throw std::runtime_error(
+        "Could not open output codec for file: " + filename + "\n" +
+        "Error: " + std::string(errbuf));
+  }
+
+
+  // 
+
+
+
+
+  if ((int error = avio_open(&output_io_context, filename.c_str()
+
+  // Guess the output format
+  AVOutputFormat * format = av_guess_format(NULL, filename.c_str(), NULL);
+
+  format
 
 }
 

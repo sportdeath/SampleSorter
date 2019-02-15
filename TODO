@@ -1,0 +1,6 @@
+Make write file
+Make unit tests for audio reading and writing
+ - make sure read is the same length, channels, sample rate etc.
+ - write a read file and perform diff
+Use write to generate examples
+ - pitched chords at time interval with small amount of drift
