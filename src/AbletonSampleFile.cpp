@@ -233,7 +233,7 @@ bool AbletonSampleFile::readDoc() {
     tinyxml2::XMLElement * octaveElement = getSortDataNode() 
       -> FirstChildElement("Octave");
     std::vector<double> octaveSpectrogram(12);
-    for (long i = 0; i < 12; i++) {
+    for (int i = 0; i < 12; i++) {
       octaveSpectrogram[i] = octaveElement -> DoubleAttribute("Value");
       octaveElement = octaveElement -> NextSiblingElement("Octave");
     }
@@ -247,7 +247,7 @@ bool AbletonSampleFile::readDoc() {
       std::vector<double> spectrogram(12);
       tinyxml2::XMLElement * noteElement = 
         chordElement -> FirstChildElement("Note");
-      for (long i = 0; i < 12; i++) {
+      for (int i = 0; i < 12; i++) {
         spectrogram[i] = noteElement -> DoubleAttribute("Value");
         noteElement = noteElement -> NextSiblingElement("Note");
       }
@@ -326,9 +326,9 @@ void AbletonSampleFile::writeToFile() {
 
   // Chords
   std::vector<Octave> chords = getAudioSample() -> getChords();
-  for (long i = 0; i < chords.size(); i++) {
+  for (size_t i = 0; i < chords.size(); i++) {
     tinyxml2::XMLElement * chordElement = doc.NewElement("Chord");
-    for (short j = 0; j < 12; j++) {
+    for (int j = 0; j < 12; j++) {
       tinyxml2::XMLElement * noteElement = doc.NewElement("Note");
       noteElement -> SetAttribute("Value", chords[i].getSpectrogram()[j]);
       chordElement -> InsertEndChild(noteElement);

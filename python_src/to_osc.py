@@ -17,6 +17,8 @@ import ctypes
 from sample_reader import SampleReader
 from octave_classifier import OctaveClassifier
 
+import random
+
 IP = "127.0.0.1"
 PORT_SEND = 5005
 PORT_RECEIVE = 5006
@@ -181,7 +183,12 @@ class Something:
 
         # Combine the results with paths
         zipped = zip(decision_, tunings, paths, audio_paths)
-        self.samples = sorted(zipped, key=lambda x: x[0])[::-1]
+        self.samples = filter(lambda x: x[0] > DECISION_THRESHOLD, zipped)
+        self.samples = filter(lambda x: "Binaural" not in x[2], self.samples)
+        self.samples = list(self.samples)
+        random.shuffle(self.samples)
+        # print(self.samples)
+        # self.samples = sorted(zipped, key=lambda x: x[0])[::-1]
 
         self.client.send_message("/playlist", "clear")
 

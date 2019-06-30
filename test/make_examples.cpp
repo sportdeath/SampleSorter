@@ -8,7 +8,7 @@
 #include <Plotting/Plotting.hpp>
 
 std::vector<double> getFFTMag(std::vector<double> audio) {
-  long fftSize = audio.size()/2 + 1;
+  size_t fftSize = audio.size()/2 + 1;
 
   std::vector<double> windows(audio.size());
   fftw_complex * fft;
@@ -27,14 +27,14 @@ std::vector<double> getFFTMag(std::vector<double> audio) {
 
   std::vector<double> output;
   output.resize(fftSize);
-  for (long i = 0; i < fftSize; i++) {
+  for (size_t i = 0; i < fftSize; i++) {
      output[i] = std::abs(SpectralProcessing::fftToComplex(fft, i));
   }
 
   return output;
 }
 
-int main(int argc, char ** argv) {
+int main() {
   // The test sample file
   // std::string sampleFile = "../test/User Library/Samples/sample.alc";
   // The user library root
@@ -109,7 +109,7 @@ int main(int argc, char ** argv) {
   Plotting::plotVector(correlation, "Onset Energy Autocorrelation", "Time (seconds)", "Amplitude", binsToSeconds);
   
   // only take first half of correlation
-  long fftSize = correlation.size()/4 + 1;
+  size_t fftSize = correlation.size()/4 + 1;
   fftw_complex * fft;
   fft = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * fftSize);
   fftw_plan fftPlan = fftw_plan_dft_r2c_1d(
@@ -119,7 +119,7 @@ int main(int argc, char ** argv) {
       FFTW_ESTIMATE);
 
   //Window the correlation
-  for (long i = 0; i < correlation.size()/2; i++) {
+  for (size_t i = 0; i < correlation.size()/2; i++) {
     correlation[i] = correlation[i] 
               * SpectralProcessing::hammingWindow(i, correlation.size()/2);
   }
@@ -128,7 +128,7 @@ int main(int argc, char ** argv) {
   fftw_destroy_plan(fftPlan);
   std::vector<double> correlationFFT;
   correlationFFT.resize(fftSize);
-  for (long i = 0; i < fftSize; i++) {
+  for (size_t i = 0; i < fftSize; i++) {
      correlationFFT[i] = std::abs(SpectralProcessing::fftToComplex(fft, i));
   }
   double binsToBPM = 60. * (sampleRate/double(hopSize))/(2*fftSize + 1);
